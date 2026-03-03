@@ -1,0 +1,16 @@
+{
+  "name": "Look Ahead - Day View",
+  "short_name": "Look Ahead",
+  "description": "Mobile day view for Look Ahead Planner",
+  "start_url": "/look-ahead-mobile.html",
+  "display": "standalone",
+  "background_color": "#090f0b",
+  "theme_color": "#020603",
+  "icons": [
+    {
+      "src": "favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

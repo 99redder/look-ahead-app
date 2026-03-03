@@ -1,0 +1,507 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Look Ahead - Day View</title>
+  <meta name="theme-color" content="#020603" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <link rel="apple-touch-icon" href="favicon.svg" />
+  <link rel="manifest" href="manifest.json" />
+  <style>
+    :root {
+      --bg: #090f0b;
+      --panel: #0d1410;
+      --line: #39ff14;
+      --text: #b6ffac;
+      --muted: #7dff63;
+      --pink: #ff4fd8;
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body { 
+      margin: 0; 
+      font-family: Inter, system-ui, sans-serif; 
+      background: var(--bg); 
+      color: var(--text); 
+      min-height: 100vh;
+      min-height: 100dvh;
+    }
+    .app { 
+      display: flex; 
+      flex-direction: column; 
+      min-height: 100vh;
+      min-height: 100dvh;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 16px;
+      background: var(--panel);
+      border-bottom: 1px solid #214526;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .brand { font-size: 18px; font-weight: 700; color: var(--line); }
+    .sync-pill { font-size: 11px; color: var(--muted); }
+    
+    .day-nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px;
+      background: var(--panel);
+    }
+    .nav-btn {
+      background: #0f2a12;
+      border: 1px solid var(--line);
+      color: var(--line);
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-size: 20px;
+      cursor: pointer;
+    }
+    .nav-btn:active { background: #1a3d1c; }
+    .day-label {
+      text-align: center;
+    }
+    .day-name { font-size: 14px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+    .day-date { font-size: 24px; font-weight: 700; color: var(--line); }
+    
+    .task-list {
+      flex: 1;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      overflow-y: auto;
+    }
+    .task-item {
+      background: var(--panel);
+      border: 1px solid #214526;
+      border-radius: 10px;
+      padding: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+    .task-item.done { opacity: 0.5; }
+    .task-item.done .task-title { text-decoration: line-through; }
+    .task-title { font-size: 16px; }
+    .task-actions { display: flex; gap: 8px; }
+    .task-btn {
+      background: transparent;
+      border: 1px solid #214526;
+      color: var(--text);
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    .task-btn.done-btn { border-color: var(--line); color: var(--line); }
+    .task-btn.delete-btn { border-color: #5a2222; color: #ff9b9b; }
+    
+    .add-btn {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--line), #2db84d);
+      border: none;
+      color: #001a00;
+      font-size: 32px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 4px 20px rgba(57, 255, 20, 0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .add-btn:active { transform: scale(0.95); }
+    
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--muted);
+    }
+    
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.85);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 20px;
+    }
+    .modal-backdrop.active { display: flex; }
+    .modal {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 20px;
+      width: 100%;
+      max-width: 400px;
+    }
+    .modal h3 { margin: 0 0 12px; color: var(--line); }
+    .modal input {
+      width: 100%;
+      background: #0b120d;
+      color: var(--text);
+      border: 1px solid #24522b;
+      padding: 14px;
+      border-radius: 8px;
+      font-size: 16px;
+      margin-bottom: 16px;
+    }
+    .modal-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+    }
+    .modal-btn {
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    .modal-btn.cancel { background: transparent; border: 1px solid #214526; color: var(--text); }
+    .modal-btn.save { background: var(--line); border: none; color: #001a00; font-weight: 600; }
+    
+    .today-btn {
+      background: transparent;
+      border: 1px solid var(--pink);
+      color: var(--pink);
+      padding: 8px 16px;
+      border-radius: 16px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div class="brand">Look Ahead</div>
+      <span class="sync-pill" id="sync-pill">Synced</span>
+    </header>
+    
+    <div class="day-nav">
+      <button class="nav-btn" id="prev-day">←</button>
+      <div class="day-label">
+        <div class="day-name" id="day-name">Tuesday</div>
+        <div class="day-date" id="day-date">Mar 3</div>
+      </div>
+      <button class="nav-btn" id="next-day">→</button>
+    </div>
+    
+    <div style="text-align: center; padding: 8px;">
+      <button class="today-btn" id="go-today">Today</button>
+    </div>
+    
+    <div class="task-list" id="task-list">
+      <div class="empty-state">Loading...</div>
+    </div>
+    
+    <button class="add-btn" id="add-btn">+</button>
+  </div>
+  
+  <div class="modal-backdrop" id="modal">
+    <div class="modal">
+      <h3 id="modal-title">New Task</h3>
+      <input type="text" id="modal-input" placeholder="Task title..." />
+      <div class="modal-actions">
+        <button class="modal-btn cancel" id="modal-cancel">Cancel</button>
+        <button class="modal-btn save" id="modal-save">Add</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Service Worker for auto-update
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js').catch(() => {});
+    }
+    
+    // Auto-reload on page show (when user returns to app)
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) loadTasks();
+    });
+    
+    // Also reload on focus
+    window.addEventListener('focus', () => loadTasks());
+
+    const API_BASES = [
+      'https://eastern-shore-ai-contact.99redder.workers.dev',
+      'https://eastern-shore-ai-contact.florencemaegifts.workers.dev'
+    ];
+    const USER_ID = 'chris';
+    
+    let tasks = [];
+    let currentDate = new Date();
+    let isEditing = false;
+    let editingTaskId = null;
+    
+    const dayName = document.getElementById('day-name');
+    const dayDate = document.getElementById('day-date');
+    const taskList = document.getElementById('task-list');
+    const syncPill = document.getElementById('sync-pill');
+    const modal = document.getElementById('modal');
+    const modalInput = document.getElementById('modal-input');
+    const modalTitle = document.getElementById('modal-title');
+    const modalSave = document.getElementById('modal-save');
+    const modalCancel = document.getElementById('modal-cancel');
+    
+    function ymd(d) {
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    }
+    
+    function formatDayName(d) {
+      return d.toLocaleDateString('en-US', { weekday: 'long' });
+    }
+    
+    function formatDayDate(d) {
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    }
+    
+    function isSameDay(d1, d2) {
+      return d1.getFullYear() === d2.getFullYear() &&
+             d1.getMonth() === d2.getMonth() &&
+             d1.getDate() === d2.getDate();
+    }
+    
+    function isToday(d) {
+      return isSameDay(d, new Date());
+    }
+    
+    function updateHeader() {
+      dayName.textContent = formatDayName(currentDate);
+      dayDate.textContent = formatDayDate(currentDate);
+      if (isToday(currentDate)) {
+        dayDate.textContent += ' (Today)';
+      }
+    }
+    
+    function setSync(text, ok = true) {
+      syncPill.textContent = text;
+      syncPill.style.color = ok ? 'var(--muted)' : '#ff8fb3';
+    }
+    
+    async function api(path, options = {}) {
+      let lastErr = null;
+      for (const base of API_BASES) {
+        try {
+          const res = await fetch(`${base}${path}`, {
+            ...options,
+            headers: { 'Content-Type': 'application/json', ...(options.headers || {}) }
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok || data.ok === false) throw new Error(data.error || `Request failed (${res.status})`);
+          return data;
+        } catch (err) {
+          lastErr = err;
+        }
+      }
+      throw lastErr || new Error('Network error');
+    }
+    
+    async function loadTasks() {
+      setSync('Syncing...');
+      try {
+        const data = await api(`/api/planner/items?userId=${encodeURIComponent(USER_ID)}&includeDone=1`);
+        tasks = Array.isArray(data.items) ? data.items : [];
+        renderTasks();
+        setSync('Synced');
+      } catch (err) {
+        setSync(err.message || 'Error', false);
+        taskList.innerHTML = '<div class="empty-state">Error loading tasks</div>';
+      }
+    }
+    
+    function renderTasks() {
+      const dateKey = ymd(currentDate);
+      const dayTasks = tasks.filter(t => (t.due_date || '') === dateKey);
+      
+      if (dayTasks.length === 0) {
+        taskList.innerHTML = '<div class="empty-state">No tasks for this day<br><br>Tap + to add one</div>';
+        return;
+      }
+      
+      taskList.innerHTML = dayTasks.map(t => `
+        <div class="task-item ${t.status === 'done' ? 'done' : ''}" data-id="${t.id}">
+          <div class="task-title">${escapeHtml(t.title)}</div>
+          <div class="task-actions">
+            <button class="task-btn done-btn" data-action="toggle">${t.status === 'done' ? '↩' : '✓'}</button>
+            <button class="task-btn" data-action="edit">✎</button>
+            <button class="task-btn delete-btn" data-action="delete">✕</button>
+          </div>
+        </div>
+      `).join('');
+    }
+    
+    function escapeHtml(v) {
+      return String(v || '').replace(/[&<>'"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+    
+    function openModal(title, saveLabel, initialValue = '', isEdit = false) {
+      modalTitle.textContent = title;
+      modalInput.value = initialValue;
+      modalSave.textContent = saveLabel;
+      modal.classList.add('active');
+      isEditing = isEdit;
+      setTimeout(() => modalInput.focus(), 100);
+    }
+    
+    function closeModal() {
+      modal.classList.remove('active');
+      modalInput.value = '';
+    }
+    
+    async function addTask(title) {
+      if (!title.trim()) return;
+      try {
+        setSync('Saving...');
+        await api('/api/planner/items', {
+          method: 'POST',
+          body: JSON.stringify({
+            userId: USER_ID,
+            kind: 'task',
+            title: title.trim(),
+            dueDate: ymd(currentDate),
+            source: 'lookahead-mobile'
+          })
+        });
+        closeModal();
+        await loadTasks();
+      } catch (err) {
+        setSync(err.message || 'Error saving', false);
+      }
+    }
+    
+    async function updateTask(id, title) {
+      if (!title.trim()) return;
+      const existing = tasks.find(t => String(t.id) === String(id));
+      if (!existing) return;
+      try {
+        setSync('Saving...');
+        await api('/api/planner/items', {
+          method: 'POST',
+          body: JSON.stringify({
+            id: existing.id,
+            userId: USER_ID,
+            kind: existing.kind || 'task',
+            title: title.trim(),
+            dueDate: existing.due_date || null,
+            status: existing.status || 'open',
+            source: existing.source || 'lookahead-mobile'
+          })
+        });
+        closeModal();
+        editingTaskId = null;
+        await loadTasks();
+      } catch (err) {
+        setSync(err.message || 'Error saving', false);
+      }
+    }
+    
+    async function toggleTask(id) {
+      const task = tasks.find(t => String(t.id) === String(id));
+      if (!task) return;
+      try {
+        setSync('Saving...');
+        await api('/api/planner/items/toggle', {
+          method: 'POST',
+          body: JSON.stringify({ id })
+        });
+        await loadTasks();
+      } catch (err) {
+        setSync(err.message || 'Error', false);
+      }
+    }
+    
+    async function deleteTask(id) {
+      if (!confirm('Delete this task?')) return;
+      try {
+        setSync('Deleting...');
+        await api('/api/planner/items/delete', {
+          method: 'POST',
+          body: JSON.stringify({ id })
+        });
+        await loadTasks();
+      } catch (err) {
+        setSync(err.message || 'Error', false);
+      }
+    }
+    
+    // Event Listeners
+    document.getElementById('prev-day').addEventListener('click', () => {
+      currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate() - 1);
+      updateHeader();
+      renderTasks();
+    });
+    
+    document.getElementById('next-day').addEventListener('click', () => {
+      currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate() + 1);
+      updateHeader();
+      renderTasks();
+    });
+    
+    document.getElementById('go-today').addEventListener('click', () => {
+      currentDate = new Date();
+      updateHeader();
+      renderTasks();
+    });
+    
+    document.getElementById('add-btn').addEventListener('click', () => {
+      openModal('New Task', 'Add');
+    });
+    
+    modalCancel.addEventListener('click', closeModal);
+    modalSave.addEventListener('click', () => {
+      if (isEditing && editingTaskId) {
+        updateTask(editingTaskId, modalInput.value);
+      } else {
+        addTask(modalInput.value);
+      }
+    });
+    
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) closeModal();
+    });
+    
+    modalInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') modalSave.click();
+      if (e.key === 'Escape') closeModal();
+    });
+    
+    taskList.addEventListener('click', async (e) => {
+      const btn = e.target.closest('.task-btn');
+      if (!btn) return;
+      const item = btn.closest('.task-item');
+      const id = item?.dataset.id;
+      const action = btn.dataset.action;
+      
+      if (action === 'toggle') await toggleTask(id);
+      if (action === 'delete') await deleteTask(id);
+      if (action === 'edit') {
+        const task = tasks.find(t => String(t.id) === String(id));
+        if (task) {
+          editingTaskId = id;
+          openModal('Edit Task', 'Save', task.title, true);
+        }
+      }
+    });
+    
+    // Initialize
+    updateHeader();
+    loadTasks();
+  </script>
+</body>
+</html>
