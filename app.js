@@ -1,4 +1,7 @@
-const API_BASE = 'https://eastern-shore-ai-contact.99redder.workers.dev';
+const API_BASES = [
+  'https://eastern-shore-ai-contact.99redder.workers.dev',
+  'https://eastern-shore-ai-contact.florencemaegifts.workers.dev'
+];
 const USER_ID = 'chris';
 
 const app = document.getElementById('app');
@@ -21,13 +24,21 @@ calCursor = new Date(calCursor.getFullYear(), calCursor.getMonth(), 1);
 
 
 async function api(path, options = {}) {
-  const res = await fetch(`${API_BASE}${path}`, {
-    ...options,
-    headers: { 'Content-Type': 'application/json', ...(options.headers || {}) }
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok || data.ok === false) throw new Error(data.error || 'Request failed');
-  return data;
+  let lastErr = null;
+  for (const base of API_BASES) {
+    try {
+      const res = await fetch(`${base}${path}`, {
+        ...options,
+        headers: { 'Content-Type': 'application/json', ...(options.headers || {}) }
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data.ok === false) throw new Error(data.error || `Request failed (${res.status})`);
+      return data;
+    } catch (err) {
+      lastErr = err;
+    }
+  }
+  throw lastErr || new Error('Network error');
 }
 
 function setSync(text, ok = true) {
@@ -307,4 +318,6 @@ taskList.addEventListener('dragend', (e) => {
   document.querySelectorAll('.cal-day.drop-target').forEach((el) => el.classList.remove('drop-target'));
 });
 
-loadTasks();
+loadTasks().catch((err) => {
+  setSync(err?.message || 'Network error when attempting to fetch resource', false);
+});
