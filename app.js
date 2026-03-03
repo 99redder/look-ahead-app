@@ -6,6 +6,12 @@ const USER_ID = 'chris';
 
 const app = document.getElementById('app');
 const syncPill = document.getElementById('sync-pill');
+const modalBackdrop = document.getElementById('modal-backdrop');
+const modalTitle = document.getElementById('modal-title');
+const modalMessage = document.getElementById('modal-message');
+const modalInput = document.getElementById('modal-input');
+const modalCancel = document.getElementById('modal-cancel');
+const modalSave = document.getElementById('modal-save');
 
 const taskTitle = document.getElementById('task-title');
 const taskDate = document.getElementById('task-date');
@@ -44,6 +50,40 @@ async function api(path, options = {}) {
 function setSync(text, ok = true) {
   syncPill.textContent = text;
   syncPill.style.color = ok ? 'var(--muted)' : '#ff8fb3';
+}
+
+function promptModal({ title = 'Edit', message = '', initialValue = '', saveLabel = 'Save' }) {
+  return new Promise((resolve) => {
+    modalTitle.textContent = title;
+    modalMessage.textContent = message;
+    modalInput.value = initialValue || '';
+    modalSave.textContent = saveLabel;
+    modalBackdrop.style.display = 'grid';
+    modalBackdrop.setAttribute('aria-hidden', 'false');
+    setTimeout(() => modalInput.focus(), 0);
+
+    const close = (val) => {
+      modalBackdrop.style.display = 'none';
+      modalBackdrop.setAttribute('aria-hidden', 'true');
+      modalSave.removeEventListener('click', onSave);
+      modalCancel.removeEventListener('click', onCancel);
+      modalBackdrop.removeEventListener('click', onBackdrop);
+      modalInput.removeEventListener('keydown', onKey);
+      resolve(val);
+    };
+    const onSave = () => close(modalInput.value);
+    const onCancel = () => close(null);
+    const onBackdrop = (e) => { if (e.target === modalBackdrop) close(null); };
+    const onKey = (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); onSave(); }
+      if (e.key === 'Escape') { e.preventDefault(); onCancel(); }
+    };
+
+    modalSave.addEventListener('click', onSave);
+    modalCancel.addEventListener('click', onCancel);
+    modalBackdrop.addEventListener('click', onBackdrop);
+    modalInput.addEventListener('keydown', onKey);
+  });
 }
 
 function ymdToday() {
@@ -194,7 +234,12 @@ calendarGrid.addEventListener('click', async (e) => {
     e.stopPropagation();
     const id = taskChip.getAttribute('data-drag-task-id') || '';
     const current = taskChip.textContent?.trim() || '';
-    const next = window.prompt('Rename task:', current);
+    const next = await promptModal({
+      title: 'Rename Task',
+      message: 'Update the task title:',
+      initialValue: current,
+      saveLabel: 'Save'
+    });
     if (next == null) return;
     const title = next.trim();
     if (!title) return;
@@ -252,7 +297,12 @@ calendarGrid.addEventListener('contextmenu', async (e) => {
   e.preventDefault();
   const ymd = cell.getAttribute('data-date') || '';
   if (!ymd) return;
-  const titleRaw = window.prompt(`New task for ${ymd}:`);
+  const titleRaw = await promptModal({
+    title: 'New Task',
+    message: `Create a task for ${ymd}:`,
+    initialValue: '',
+    saveLabel: 'Create'
+  });
   if (titleRaw == null) return;
   const title = titleRaw.trim();
   if (!title) return;

@@ -23,6 +23,12 @@ button:hover { border-color: var(--pink); color: var(--pink); }
 .top-panels{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:8px 0 18px}
 .composer { display: grid; gap: 8px; margin: 0; border:1px solid #214526; border-radius:8px; background:var(--panel); padding:10px; }
 .panel-placeholder{border:1px dashed #214526;border-radius:8px;min-height:132px;background:rgba(11,18,13,.45)}
+.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.6);display:grid;place-items:center;z-index:2000}
+.modal-card{width:min(520px,92vw);background:#081009;border:1px solid var(--line);border-radius:10px;padding:14px;box-shadow:0 0 22px rgba(57,255,20,.2)}
+.modal-title{margin:0 0 6px;color:var(--line)}
+.modal-message{margin:0 0 8px;color:var(--muted)}
+.modal-input{width:100%;background:#0b120d;color:var(--text);border:1px solid #39ff14;border-radius:8px;padding:10px}
+.modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:10px}
 .section-title { color: var(--pink); margin-bottom: 8px; font-weight: 700; }
 .calendar-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:8px 0}
 .cal-nav{display:flex;align-items:center;gap:8px}
