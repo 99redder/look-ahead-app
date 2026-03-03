@@ -99,7 +99,7 @@ function renderCalendar() {
     const dayItems = tasks
       .filter(t => (t.due_date || '') === key)
       .sort((a,b) => (a.status === 'done') - (b.status === 'done'));
-    const html = dayItems.slice(0, 4).map(t => `<div class="cal-item">${escapeHtml(t.title)}</div>`).join('');
+    const html = dayItems.slice(0, 4).map(t => `<div class="cal-item" draggable="true" data-drag-task-id="${t.id}">${escapeHtml(t.title)}</div>`).join('');
     const more = dayItems.length > 4 ? `<div class="cal-item">+${dayItems.length - 4} more</div>` : '';
     const isPast = key < todayKey;
     cells.push(`<div class="cal-day ${key === todayKey ? 'today' : ''} ${isPast ? 'past' : ''}" data-date="${key}"><div class="cal-day-num">${day}</div>${html}${more}</div>`);
@@ -193,6 +193,24 @@ calendarGrid.addEventListener('click', (e) => {
   const ymd = cell.getAttribute('data-date') || '';
   if (!ymd) return;
   taskDate.value = ymd;
+});
+
+calendarGrid.addEventListener('dragstart', (e) => {
+  const item = e.target.closest('.cal-item[data-drag-task-id]');
+  if (!item) return;
+  dragTaskId = item.getAttribute('data-drag-task-id') || null;
+  item.classList.add('dragging');
+  try {
+    e.dataTransfer?.setData('text/plain', dragTaskId || '');
+    if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move';
+  } catch {}
+});
+
+calendarGrid.addEventListener('dragend', (e) => {
+  const item = e.target.closest('.cal-item[data-drag-task-id]');
+  if (item) item.classList.remove('dragging');
+  dragTaskId = null;
+  document.querySelectorAll('.cal-day.drop-target').forEach((el) => el.classList.remove('drop-target'));
 });
 
 calendarGrid.addEventListener('dragover', (e) => {
