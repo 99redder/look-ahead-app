@@ -16,7 +16,7 @@ body { margin: 0; font-family: Inter, system-ui, sans-serif; background: linear-
 button { background: #0f2a12; border: 1px solid var(--line); color: var(--line); padding: 9px 12px; border-radius: 8px; cursor: pointer; }
 button:hover { border-color: var(--pink); color: var(--pink); }
 .error { color: #ff8fb3; min-height: 18px; margin-top: 6px; }
-.app { width: 95vw; max-width: 95vw; margin: 0 auto; padding: 16px; }
+.app { width: 95vw; max-width: 95vw; margin: 0 auto; padding: 16px; min-height: 100vh; display:flex; flex-direction:column; }
 .top { display: flex; justify-content: space-between; align-items: center; }
 .top h1 { margin: 0 0 12px; color: var(--line); }
 .sync-pill { border: 1px solid var(--line); border-radius: 999px; padding: 4px 10px; font-size: 12px; color: var(--muted); }
@@ -32,7 +32,7 @@ button:hover { border-color: var(--pink); color: var(--pink); }
 .cal-nav{display:flex;align-items:center;gap:8px}
 .cal-label{min-width:170px;text-align:center;color:var(--line);font-weight:700}
 .calendar-grid{margin-bottom:14px}
-.rolling-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;max-height:72vh;overflow:auto;padding-right:4px}
+.rolling-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;height:calc(100vh - 170px);overflow:auto;padding-right:4px}
 .cal-dow,.cal-day{border:1px solid #214526;border-radius:8px}
 .cal-dow{padding:6px 4px;text-align:center;color:#000;font-size:12px;font-weight:700;background:#39ff14;position:sticky;top:0;z-index:2}
 .cal-day{min-height:360px;padding:8px;display:flex;flex-direction:column;gap:6px;background:#000;color:var(--text);position:relative}
