@@ -158,6 +158,7 @@ function renderCalendar() {
 }
 
 function renderList() {
+  if (!taskList) return;
   const sorted = [...tasks].sort((a, b) => (a.due_date || '').localeCompare(b.due_date || ''));
   taskList.innerHTML = sorted.map(t => `
     <div class="item ${t.status === 'done' ? 'done' : ''}" draggable="true" data-drag-task-id="${t.id}">
@@ -179,35 +180,37 @@ function render() {
   renderList();
 }
 
-taskList.addEventListener('click', async (e) => {
-  const btn = e.target.closest('button');
-  if (!btn) return;
-  const id = btn.dataset.id;
-  const act = btn.dataset.act;
-  try {
-    setSync('Syncing…');
-    if (act === 'toggle') await api('/api/planner/items/toggle', { method: 'POST', body: JSON.stringify({ id }) });
-    if (act === 'delete') await api('/api/planner/items/delete', { method: 'POST', body: JSON.stringify({ id }) });
-    await loadTasks();
-  } catch (err) {
-    setSync(err.message || 'Sync error', false);
-  }
-});
+if (taskList) {
+  taskList.addEventListener('click', async (e) => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    const id = btn.dataset.id;
+    const act = btn.dataset.act;
+    try {
+      setSync('Syncing…');
+      if (act === 'toggle') await api('/api/planner/items/toggle', { method: 'POST', body: JSON.stringify({ id }) });
+      if (act === 'delete') await api('/api/planner/items/delete', { method: 'POST', body: JSON.stringify({ id }) });
+      await loadTasks();
+    } catch (err) {
+      setSync(err.message || 'Sync error', false);
+    }
+  });
 
-taskList.addEventListener('change', async (e) => {
-  const input = e.target.closest('input[data-act="date"]');
-  if (!input) return;
-  const id = input.dataset.id;
-  const dueDate = input.value;
-  if (!id || !dueDate) return;
-  try {
-    setSync('Syncing…');
-    await api('/api/planner/items/reschedule', { method: 'POST', body: JSON.stringify({ id, dueDate }) });
-    await loadTasks();
-  } catch (err) {
-    setSync(err.message || 'Sync error', false);
-  }
-});
+  taskList.addEventListener('change', async (e) => {
+    const input = e.target.closest('input[data-act="date"]');
+    if (!input) return;
+    const id = input.dataset.id;
+    const dueDate = input.value;
+    if (!id || !dueDate) return;
+    try {
+      setSync('Syncing…');
+      await api('/api/planner/items/reschedule', { method: 'POST', body: JSON.stringify({ id, dueDate }) });
+      await loadTasks();
+    } catch (err) {
+      setSync(err.message || 'Sync error', false);
+    }
+  });
+}
 
 calPrev.addEventListener('click', () => {
   calCursor = new Date(calCursor.getFullYear(), calCursor.getMonth(), calCursor.getDate() - 84);
@@ -349,23 +352,25 @@ calendarGrid.addEventListener('drop', async (e) => {
   }
 });
 
- taskList.addEventListener('dragstart', (e) => {
-  const row = e.target.closest('[data-drag-task-id]');
-  if (!row) return;
-  dragTaskId = row.getAttribute('data-drag-task-id') || null;
-  row.classList.add('dragging');
-  try {
-    e.dataTransfer?.setData('text/plain', dragTaskId || '');
-    if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move';
-  } catch {}
-});
+if (taskList) {
+  taskList.addEventListener('dragstart', (e) => {
+    const row = e.target.closest('[data-drag-task-id]');
+    if (!row) return;
+    dragTaskId = row.getAttribute('data-drag-task-id') || null;
+    row.classList.add('dragging');
+    try {
+      e.dataTransfer?.setData('text/plain', dragTaskId || '');
+      if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move';
+    } catch {}
+  });
 
-taskList.addEventListener('dragend', (e) => {
-  const row = e.target.closest('[data-drag-task-id]');
-  if (row) row.classList.remove('dragging');
-  dragTaskId = null;
-  document.querySelectorAll('.cal-day.drop-target').forEach((el) => el.classList.remove('drop-target'));
-});
+  taskList.addEventListener('dragend', (e) => {
+    const row = e.target.closest('[data-drag-task-id]');
+    if (row) row.classList.remove('dragging');
+    dragTaskId = null;
+    document.querySelectorAll('.cal-day.drop-target').forEach((el) => el.classList.remove('drop-target'));
+  });
+}
 
 loadTasks().catch((err) => {
   setSync(err?.message || 'Network error when attempting to fetch resource', false);
