@@ -13,9 +13,6 @@ const modalInput = document.getElementById('modal-input');
 const modalCancel = document.getElementById('modal-cancel');
 const modalSave = document.getElementById('modal-save');
 
-const taskTitle = document.getElementById('task-title');
-const taskDate = document.getElementById('task-date');
-const addTaskBtn = document.getElementById('add-task');
 const taskList = document.getElementById('task-list');
 const calendarGrid = document.getElementById('calendar-grid');
 const calLabel = document.getElementById('cal-label');
@@ -171,23 +168,6 @@ function render() {
   renderList();
 }
 
-addTaskBtn.addEventListener('click', async () => {
-  const title = taskTitle.value.trim();
-  const dueDate = taskDate.value || null;
-  if (!title) return;
-  try {
-    setSync('Syncing…');
-    await api('/api/planner/items', {
-      method: 'POST',
-      body: JSON.stringify({ userId: USER_ID, kind: 'task', title, dueDate, source: 'lookahead-app' })
-    });
-    taskTitle.value = '';
-    await loadTasks();
-  } catch (err) {
-    setSync(err.message || 'Sync error', false);
-  }
-});
-
 taskList.addEventListener('click', async (e) => {
   const btn = e.target.closest('button');
   if (!btn) return;
@@ -270,7 +250,6 @@ calendarGrid.addEventListener('click', async (e) => {
   if (!cell) return;
   const ymd = cell.getAttribute('data-date') || '';
   if (!ymd) return;
-  taskDate.value = ymd;
 });
 
 calendarGrid.addEventListener('dragstart', (e) => {
@@ -312,7 +291,6 @@ calendarGrid.addEventListener('contextmenu', async (e) => {
       method: 'POST',
       body: JSON.stringify({ userId: USER_ID, kind: 'task', title, dueDate: ymd, source: 'lookahead-app' })
     });
-    taskDate.value = ymd;
     await loadTasks();
   } catch (err) {
     setSync(err.message || 'Sync error', false);
@@ -343,7 +321,6 @@ calendarGrid.addEventListener('drop', async (e) => {
   try {
     setSync('Syncing…');
     await api('/api/planner/items/reschedule', { method: 'POST', body: JSON.stringify({ id, dueDate: ymd }) });
-    taskDate.value = ymd;
     await loadTasks();
   } catch (err) {
     setSync(err.message || 'Sync error', false);
