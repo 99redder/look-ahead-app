@@ -293,11 +293,16 @@
     function updateHeader() {
       dayName.textContent = formatDayName(currentDate);
       dayDate.textContent = formatDayDate(currentDate);
-      // Show Today button only on today or tomorrow
-      if (isToday(currentDate) || isTomorrow(currentDate)) {
-        document.getElementById('go-today').style.display = '';
+      // Show button only on today or tomorrow, with appropriate label
+      const btn = document.getElementById('go-today');
+      if (isToday(currentDate)) {
+        btn.textContent = 'Today';
+        btn.style.display = '';
+      } else if (isTomorrow(currentDate)) {
+        btn.textContent = 'Tomorrow';
+        btn.style.display = '';
       } else {
-        document.getElementById('go-today').style.display = 'none';
+        btn.style.display = 'none';
       }
     }
     
