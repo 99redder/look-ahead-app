@@ -1,5 +1,5 @@
 // password: change-me-now
-const PASSWORD_SHA256 = 'ccc0b903bce51fb554262d742d0a282e1f8a87d064f1cf44f8ff5148ca4beb42';
+const PASSWORD_SHA256 = '585c218c7c4853083656759dd3cadb5353e3720848a329c19ff8cd8e72ace2cb';
 const API_BASE = 'https://eastern-shore-ai-contact.99redder.workers.dev';
 const USER_ID = 'chris';
 
