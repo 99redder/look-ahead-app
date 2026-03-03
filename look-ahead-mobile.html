@@ -298,7 +298,6 @@
       dayName.textContent = formatDayName(currentDate);
       dayDate.textContent = formatDayDate(currentDate);
       if (isToday(currentDate)) {
-        dayDate.textContent += ' (Today)';
         document.getElementById('go-today').style.display = 'none';
       } else {
         document.getElementById('go-today').style.display = '';
