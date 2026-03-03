@@ -20,7 +20,7 @@ button:hover { border-color: var(--pink); color: var(--pink); }
 .top { display: flex; justify-content: space-between; align-items: center; }
 .top h1 { margin: 0 0 12px; color: var(--line); }
 .brand{display:flex;align-items:center;margin:0}
-.brand-logo{height:72px;width:auto;display:block;filter:drop-shadow(0 0 10px rgba(57,255,20,.35))}
+.brand-logo{height:52px;width:auto;display:block;filter:drop-shadow(0 0 10px rgba(57,255,20,.35))}
 .sync-pill { border: 1px solid var(--line); border-radius: 999px; padding: 4px 10px; font-size: 12px; color: var(--muted); }
 .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.6);display:grid;place-items:center;z-index:2000}
 .modal-card{width:min(520px,92vw);background:#081009;border:1px solid var(--line);border-radius:10px;padding:14px;box-shadow:0 0 22px rgba(57,255,20,.2)}
@@ -30,7 +30,7 @@ button:hover { border-color: var(--pink); color: var(--pink); }
 .modal-notes{width:100%;margin-top:8px;background:#0b120d;color:var(--text);border:1px solid #24522b;border-radius:8px;padding:10px;resize:vertical;font-family:inherit}
 .modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:10px}
 .section-title { color: var(--pink); margin-bottom: 8px; font-weight: 700; }
-.calendar-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:8px 0}
+.calendar-head{display:flex;justify-content:flex-end;align-items:center;gap:10px;margin:8px 0}
 .cal-nav{display:flex;align-items:center;gap:8px}
 .cal-label{min-width:170px;text-align:center;color:var(--line);font-weight:700}
 .calendar-grid{margin-bottom:14px}
