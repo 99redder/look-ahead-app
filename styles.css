@@ -20,7 +20,9 @@ button:hover { border-color: var(--pink); color: var(--pink); }
 .top { display: flex; justify-content: space-between; align-items: center; }
 .top h1 { margin: 0 0 12px; color: var(--line); }
 .sync-pill { border: 1px solid var(--line); border-radius: 999px; padding: 4px 10px; font-size: 12px; color: var(--muted); }
-.composer { display: grid; gap: 8px; margin: 8px 0 18px; }
+.top-panels{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:8px 0 18px}
+.composer { display: grid; gap: 8px; margin: 0; border:1px solid #214526; border-radius:8px; background:var(--panel); padding:10px; }
+.panel-placeholder{border:1px dashed #214526;border-radius:8px;min-height:132px;background:rgba(11,18,13,.45)}
 .section-title { color: var(--pink); margin-bottom: 8px; font-weight: 700; }
 .calendar-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:8px 0}
 .cal-nav{display:flex;align-items:center;gap:8px}
