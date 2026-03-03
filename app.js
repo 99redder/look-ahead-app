@@ -270,11 +270,7 @@ calendarGrid.addEventListener('dragend', (e) => {
   document.querySelectorAll('.cal-day.drop-target').forEach((el) => el.classList.remove('drop-target'));
 });
 
-calendarGrid.addEventListener('contextmenu', async (e) => {
-  const cell = e.target.closest('.cal-day[data-date]');
-  if (!cell) return;
-  e.preventDefault();
-  const ymd = cell.getAttribute('data-date') || '';
+async function openCreateTaskModalForDay(ymd) {
   if (!ymd) return;
   const titleRaw = await promptModal({
     title: 'New Task',
@@ -295,6 +291,21 @@ calendarGrid.addEventListener('contextmenu', async (e) => {
   } catch (err) {
     setSync(err.message || 'Sync error', false);
   }
+}
+
+calendarGrid.addEventListener('contextmenu', async (e) => {
+  const cell = e.target.closest('.cal-day[data-date]');
+  if (!cell) return;
+  e.preventDefault();
+  const ymd = cell.getAttribute('data-date') || '';
+  await openCreateTaskModalForDay(ymd);
+});
+
+calendarGrid.addEventListener('dblclick', async (e) => {
+  const cell = e.target.closest('.cal-day[data-date]');
+  if (!cell) return;
+  const ymd = cell.getAttribute('data-date') || '';
+  await openCreateTaskModalForDay(ymd);
 });
 
 calendarGrid.addEventListener('dragover', (e) => {
