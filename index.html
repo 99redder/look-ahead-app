@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Look Ahead Planner</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="auth-overlay" class="auth-overlay">
+    <div class="auth-card">
+      <h1>Look Ahead</h1>
+      <p>Enter password to continue.</p>
+      <input id="auth-password" type="password" placeholder="Password" />
+      <button id="auth-submit">Unlock</button>
+      <div id="auth-error" class="error"></div>
+    </div>
+  </div>
+
+  <main id="app" class="app hidden">
+    <header class="top">
+      <h1>Look Ahead</h1>
+      <span class="sync-pill" id="sync-pill">Local only</span>
+    </header>
+
+    <section class="composer">
+      <input id="task-title" type="text" placeholder="Task title" />
+      <input id="task-date" type="date" />
+      <button id="add-task">Add Task</button>
+    </section>
+
+    <section>
+      <div class="section-title">Upcoming</div>
+      <div id="task-list" class="list"></div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
