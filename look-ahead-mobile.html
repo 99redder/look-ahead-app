@@ -202,8 +202,9 @@
       <button class="nav-btn" id="next-day">→</button>
     </div>
     
-    <div style="text-align: center; padding: 8px;">
+    <div style="text-align: center; padding: 8px; display: flex; gap: 12px; justify-content: center;">
       <button class="today-btn" id="go-today">Today</button>
+      <button class="today-btn" id="pick-date" style="border-color: var(--line); color: var(--line);">📅 Pick Date</button>
     </div>
     
     <div class="task-list" id="task-list">
@@ -220,6 +221,18 @@
       <div class="modal-actions">
         <button class="modal-btn cancel" id="modal-cancel">Cancel</button>
         <button class="modal-btn save" id="modal-save">Add</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Date Picker Modal -->
+  <div class="modal-backdrop" id="date-picker-modal">
+    <div class="modal" style="max-width: 340px;">
+      <h3>Select Date</h3>
+      <input type="date" id="date-picker-input" style="margin-bottom: 16px;" />
+      <div class="modal-actions">
+        <button class="modal-btn cancel" id="date-picker-cancel">Cancel</button>
+        <button class="modal-btn save" id="date-picker-go">Go</button>
       </div>
     </div>
   </div>
@@ -457,6 +470,35 @@
       currentDate = new Date();
       updateHeader();
       renderTasks();
+    });
+    
+    // Date picker
+    const datePickerModal = document.getElementById('date-picker-modal');
+    const datePickerInput = document.getElementById('date-picker-input');
+    
+    document.getElementById('pick-date').addEventListener('click', () => {
+      datePickerInput.value = ymd(currentDate);
+      datePickerModal.classList.add('active');
+      datePickerInput.showPicker?.();
+    });
+    
+    document.getElementById('date-picker-cancel').addEventListener('click', () => {
+      datePickerModal.classList.remove('active');
+    });
+    
+    document.getElementById('date-picker-go').addEventListener('click', () => {
+      const selected = datePickerInput.value;
+      if (selected) {
+        const [y, m, d] = selected.split('-').map(Number);
+        currentDate = new Date(y, m - 1, d);
+        updateHeader();
+        renderTasks();
+      }
+      datePickerModal.classList.remove('active');
+    });
+    
+    datePickerModal.addEventListener('click', (e) => {
+      if (e.target === datePickerModal) datePickerModal.classList.remove('active');
     });
     
     document.getElementById('add-btn').addEventListener('click', () => {
