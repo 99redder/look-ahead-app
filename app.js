@@ -100,7 +100,8 @@ function renderCalendar() {
       .sort((a,b) => (a.status === 'done') - (b.status === 'done'));
     const html = dayItems.slice(0, 4).map(t => `<div class="cal-item">${escapeHtml(t.title)}</div>`).join('');
     const more = dayItems.length > 4 ? `<div class="cal-item">+${dayItems.length - 4} more</div>` : '';
-    cells.push(`<div class="cal-day ${key === todayKey ? 'today' : ''}" data-date="${key}"><div class="cal-day-num">${day}</div>${html}${more}</div>`);
+    const isPast = key < todayKey;
+    cells.push(`<div class="cal-day ${key === todayKey ? 'today' : ''} ${isPast ? 'past' : ''}" data-date="${key}"><div class="cal-day-num">${day}</div>${html}${more}</div>`);
   }
 
   while ((cells.length - 7) % 7 !== 0) cells.push('<div class="cal-day empty"></div>');
