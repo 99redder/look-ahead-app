@@ -21,6 +21,7 @@ const calNext = document.getElementById('cal-next');
 
 let tasks = [];
 let calCursor = new Date();
+let calAutoFocused = false;
 calCursor = new Date(calCursor.getFullYear(), calCursor.getMonth(), 1);
 
 async function sha256Hex(text) {
@@ -44,10 +45,29 @@ function setSync(text, ok = true) {
   syncPill.style.color = ok ? 'var(--muted)' : '#ff8fb3';
 }
 
+function ymdToday() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function autoFocusCalendarMonthFromTasks() {
+  const open = tasks.filter(t => (t.status || 'open') !== 'done' && (t.due_date || '').trim());
+  if (!open.length) return;
+  const today = ymdToday();
+  const future = open.filter(t => t.due_date >= today).sort((a,b) => a.due_date.localeCompare(b.due_date));
+  const pick = future[0] || open.sort((a,b) => a.due_date.localeCompare(b.due_date))[0];
+  if (!pick?.due_date) return;
+  const [y,m] = pick.due_date.split('-').map(Number);
+  if (!y || !m) return;
+  calCursor = new Date(y, m - 1, 1);
+  calAutoFocused = true;
+}
+
 async function loadTasks() {
   setSync('Syncing…');
   const data = await api(`/api/planner/items?userId=${encodeURIComponent(USER_ID)}&includeDone=1`);
   tasks = Array.isArray(data.items) ? data.items : [];
+  if (!calAutoFocused) autoFocusCalendarMonthFromTasks();
   setSync('Synced');
   render();
 }

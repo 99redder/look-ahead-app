@@ -16,7 +16,7 @@ body { margin: 0; font-family: Inter, system-ui, sans-serif; background: var(--b
 button { background: #0f2a12; border: 1px solid var(--line); color: var(--line); padding: 9px 12px; border-radius: 8px; cursor: pointer; }
 button:hover { border-color: var(--pink); color: var(--pink); }
 .error { color: #ff8fb3; min-height: 18px; margin-top: 6px; }
-.app { max-width: 860px; margin: 0 auto; padding: 16px; }
+.app { width: 95vw; max-width: 95vw; margin: 0 auto; padding: 16px; }
 .top { display: flex; justify-content: space-between; align-items: center; }
 .top h1 { margin: 0 0 12px; color: var(--line); }
 .sync-pill { border: 1px solid var(--line); border-radius: 999px; padding: 4px 10px; font-size: 12px; color: var(--muted); }
@@ -28,11 +28,11 @@ button:hover { border-color: var(--pink); color: var(--pink); }
 .calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;margin-bottom:14px}
 .cal-dow,.cal-day{border:1px solid #214526;border-radius:8px;background:#0b120d}
 .cal-dow{padding:6px 4px;text-align:center;color:var(--muted);font-size:12px;font-weight:700}
-.cal-day{min-height:98px;padding:6px;display:flex;flex-direction:column;gap:4px}
+.cal-day{min-height:170px;padding:8px;display:flex;flex-direction:column;gap:6px}
 .cal-day.empty{opacity:.35}
 .cal-day.today{border-color:var(--pink);box-shadow:0 0 0 1px var(--pink) inset}
 .cal-day-num{font-size:12px;color:var(--line);font-weight:700}
-.cal-item{font-size:11px;line-height:1.2;padding:3px 5px;border-radius:5px;background:#102417;border:1px solid #2b6e33;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cal-item{font-size:12px;line-height:1.25;padding:4px 6px;border-radius:5px;background:#102417;border:1px solid #2b6e33;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .list { display: grid; gap: 8px; }
 .item { border: 1px solid #214526; background: var(--panel); border-radius: 8px; padding: 10px; display: flex; justify-content: space-between; gap: 8px; }
 .item.done .title { text-decoration: line-through; opacity: .6; }
