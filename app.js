@@ -1,12 +1,6 @@
-// password: change-me-now
-const PASSWORD_SHA256 = '585c218c7c4853083656759dd3cadb5353e3720848a329c19ff8cd8e72ace2cb';
 const API_BASE = 'https://eastern-shore-ai-contact.99redder.workers.dev';
 const USER_ID = 'chris';
 
-const authOverlay = document.getElementById('auth-overlay');
-const authPassword = document.getElementById('auth-password');
-const authSubmit = document.getElementById('auth-submit');
-const authError = document.getElementById('auth-error');
 const app = document.getElementById('app');
 const syncPill = document.getElementById('sync-pill');
 
@@ -25,11 +19,6 @@ let calAutoFocused = false;
 let dragTaskId = null;
 calCursor = new Date(calCursor.getFullYear(), calCursor.getMonth(), 1);
 
-async function sha256Hex(text) {
-  const enc = new TextEncoder().encode(text);
-  const buf = await crypto.subtle.digest('SHA-256', enc);
-  return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join('');
-}
 
 async function api(path, options = {}) {
   const res = await fetch(`${API_BASE}${path}`, {
@@ -187,7 +176,40 @@ calNext.addEventListener('click', () => {
   renderCalendar();
 });
 
-calendarGrid.addEventListener('click', (e) => {
+calendarGrid.addEventListener('click', async (e) => {
+  const taskChip = e.target.closest('.cal-item[data-drag-task-id]');
+  if (taskChip) {
+    e.preventDefault();
+    e.stopPropagation();
+    const id = taskChip.getAttribute('data-drag-task-id') || '';
+    const current = taskChip.textContent?.trim() || '';
+    const next = window.prompt('Rename task:', current);
+    if (next == null) return;
+    const title = next.trim();
+    if (!title) return;
+    const existing = tasks.find(t => String(t.id) === String(id));
+    if (!existing) return;
+    try {
+      setSync('Syncing…');
+      await api('/api/planner/items', {
+        method: 'POST',
+        body: JSON.stringify({
+          id: existing.id,
+          userId: USER_ID,
+          kind: existing.kind || 'task',
+          title,
+          dueDate: existing.due_date || null,
+          status: existing.status || 'open',
+          source: existing.source || 'lookahead-app'
+        })
+      });
+      await loadTasks();
+    } catch (err) {
+      setSync(err.message || 'Sync error', false);
+    }
+    return;
+  }
+
   const cell = e.target.closest('.cal-day[data-date]');
   if (!cell) return;
   const ymd = cell.getAttribute('data-date') || '';
@@ -211,6 +233,29 @@ calendarGrid.addEventListener('dragend', (e) => {
   if (item) item.classList.remove('dragging');
   dragTaskId = null;
   document.querySelectorAll('.cal-day.drop-target').forEach((el) => el.classList.remove('drop-target'));
+});
+
+calendarGrid.addEventListener('contextmenu', async (e) => {
+  const cell = e.target.closest('.cal-day[data-date]');
+  if (!cell) return;
+  e.preventDefault();
+  const ymd = cell.getAttribute('data-date') || '';
+  if (!ymd) return;
+  const titleRaw = window.prompt(`New task for ${ymd}:`);
+  if (titleRaw == null) return;
+  const title = titleRaw.trim();
+  if (!title) return;
+  try {
+    setSync('Syncing…');
+    await api('/api/planner/items', {
+      method: 'POST',
+      body: JSON.stringify({ userId: USER_ID, kind: 'task', title, dueDate: ymd, source: 'lookahead-app' })
+    });
+    taskDate.value = ymd;
+    await loadTasks();
+  } catch (err) {
+    setSync(err.message || 'Sync error', false);
+  }
 });
 
 calendarGrid.addEventListener('dragover', (e) => {
@@ -262,22 +307,4 @@ taskList.addEventListener('dragend', (e) => {
   document.querySelectorAll('.cal-day.drop-target').forEach((el) => el.classList.remove('drop-target'));
 });
 
-async function unlockApp() {
-  authError.textContent = '';
-  const hash = await sha256Hex(authPassword.value || '');
-  if (hash !== PASSWORD_SHA256) {
-    authError.textContent = 'Wrong password.';
-    return;
-  }
-  authOverlay.classList.add('hidden');
-  app.classList.remove('hidden');
-  await loadTasks();
-}
-
-authSubmit.addEventListener('click', unlockApp);
-authPassword.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') {
-    e.preventDefault();
-    unlockApp();
-  }
-});
+loadTasks();
