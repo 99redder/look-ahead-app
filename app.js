@@ -14,8 +14,14 @@ const taskTitle = document.getElementById('task-title');
 const taskDate = document.getElementById('task-date');
 const addTaskBtn = document.getElementById('add-task');
 const taskList = document.getElementById('task-list');
+const calendarGrid = document.getElementById('calendar-grid');
+const calLabel = document.getElementById('cal-label');
+const calPrev = document.getElementById('cal-prev');
+const calNext = document.getElementById('cal-next');
 
 let tasks = [];
+let calCursor = new Date();
+calCursor = new Date(calCursor.getFullYear(), calCursor.getMonth(), 1);
 
 async function sha256Hex(text) {
   const enc = new TextEncoder().encode(text);
@@ -40,7 +46,7 @@ function setSync(text, ok = true) {
 
 async function loadTasks() {
   setSync('Syncing…');
-  const data = await api(`/api/planner/items?userId=${encodeURIComponent(USER_ID)}`);
+  const data = await api(`/api/planner/items?userId=${encodeURIComponent(USER_ID)}&includeDone=1`);
   tasks = Array.isArray(data.items) ? data.items : [];
   setSync('Synced');
   render();
@@ -50,7 +56,38 @@ function escapeHtml(v) {
   return String(v || '').replace(/[&<>'"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
-function render() {
+function renderCalendar() {
+  const y = calCursor.getFullYear();
+  const m = calCursor.getMonth();
+  calLabel.textContent = new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' }).format(calCursor);
+
+  const first = new Date(y, m, 1);
+  const startOffset = first.getDay(); // Sunday-based
+  const daysInMonth = new Date(y, m + 1, 0).getDate();
+  const cells = [];
+  const dows = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  dows.forEach(d => cells.push(`<div class="cal-dow">${d}</div>`));
+
+  const today = new Date();
+  const todayKey = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+
+  for (let i = 0; i < startOffset; i++) cells.push('<div class="cal-day empty"></div>');
+
+  for (let day = 1; day <= daysInMonth; day++) {
+    const key = `${y}-${String(m + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const dayItems = tasks
+      .filter(t => (t.due_date || '') === key)
+      .sort((a,b) => (a.status === 'done') - (b.status === 'done'));
+    const html = dayItems.slice(0, 4).map(t => `<div class="cal-item">${escapeHtml(t.title)}</div>`).join('');
+    const more = dayItems.length > 4 ? `<div class="cal-item">+${dayItems.length - 4} more</div>` : '';
+    cells.push(`<div class="cal-day ${key === todayKey ? 'today' : ''}"><div class="cal-day-num">${day}</div>${html}${more}</div>`);
+  }
+
+  while ((cells.length - 7) % 7 !== 0) cells.push('<div class="cal-day empty"></div>');
+  calendarGrid.innerHTML = cells.join('');
+}
+
+function renderList() {
   const sorted = [...tasks].sort((a, b) => (a.due_date || '').localeCompare(b.due_date || ''));
   taskList.innerHTML = sorted.map(t => `
     <div class="item ${t.status === 'done' ? 'done' : ''}">
@@ -65,6 +102,11 @@ function render() {
       </div>
     </div>
   `).join('');
+}
+
+function render() {
+  renderCalendar();
+  renderList();
 }
 
 addTaskBtn.addEventListener('click', async () => {
@@ -91,12 +133,8 @@ taskList.addEventListener('click', async (e) => {
   const act = btn.dataset.act;
   try {
     setSync('Syncing…');
-    if (act === 'toggle') {
-      await api('/api/planner/items/toggle', { method: 'POST', body: JSON.stringify({ id }) });
-    }
-    if (act === 'delete') {
-      await api('/api/planner/items/delete', { method: 'POST', body: JSON.stringify({ id }) });
-    }
+    if (act === 'toggle') await api('/api/planner/items/toggle', { method: 'POST', body: JSON.stringify({ id }) });
+    if (act === 'delete') await api('/api/planner/items/delete', { method: 'POST', body: JSON.stringify({ id }) });
     await loadTasks();
   } catch (err) {
     setSync(err.message || 'Sync error', false);
@@ -116,6 +154,15 @@ taskList.addEventListener('change', async (e) => {
   } catch (err) {
     setSync(err.message || 'Sync error', false);
   }
+});
+
+calPrev.addEventListener('click', () => {
+  calCursor = new Date(calCursor.getFullYear(), calCursor.getMonth() - 1, 1);
+  renderCalendar();
+});
+calNext.addEventListener('click', () => {
+  calCursor = new Date(calCursor.getFullYear(), calCursor.getMonth() + 1, 1);
+  renderCalendar();
 });
 
 authSubmit.addEventListener('click', async () => {
