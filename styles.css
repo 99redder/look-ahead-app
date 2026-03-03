@@ -19,6 +19,8 @@ button:hover { border-color: var(--pink); color: var(--pink); }
 .app { width: 95vw; max-width: 95vw; margin: 0 auto; padding: 16px; min-height: 100vh; display:flex; flex-direction:column; }
 .top { display: flex; justify-content: space-between; align-items: center; }
 .top h1 { margin: 0 0 12px; color: var(--line); }
+.brand{display:flex;align-items:center;margin:0}
+.brand-logo{height:72px;width:auto;display:block;filter:drop-shadow(0 0 10px rgba(57,255,20,.35))}
 .sync-pill { border: 1px solid var(--line); border-radius: 999px; padding: 4px 10px; font-size: 12px; color: var(--muted); }
 .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.6);display:grid;place-items:center;z-index:2000}
 .modal-card{width:min(520px,92vw);background:#081009;border:1px solid var(--line);border-radius:10px;padding:14px;box-shadow:0 0 22px rgba(57,255,20,.2)}
