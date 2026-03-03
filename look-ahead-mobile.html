@@ -206,6 +206,7 @@
     <div style="text-align: center; padding: 8px; display: flex; gap: 12px; justify-content: center;">
       <button class="today-btn" id="go-today">Today</button>
       <button class="today-btn" id="pick-date" style="border-color: var(--line); color: var(--line);">📅 Pick Date</button>
+      <input type="date" id="native-date-picker" style="position:absolute; left:-9999px;" />
     </div>
     
     <div class="task-list" id="task-list">
@@ -222,18 +223,6 @@
       <div class="modal-actions">
         <button class="modal-btn cancel" id="modal-cancel">Cancel</button>
         <button class="modal-btn save" id="modal-save">Add</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Date Picker Modal -->
-  <div class="modal-backdrop" id="date-picker-modal">
-    <div class="modal" style="max-width: 340px;">
-      <h3>Select Date</h3>
-      <input type="date" id="date-picker-input" style="margin-bottom: 16px;" />
-      <div class="modal-actions">
-        <button class="modal-btn cancel" id="date-picker-cancel">Cancel</button>
-        <button class="modal-btn save" id="date-picker-go">Go</button>
       </div>
     </div>
   </div>
@@ -295,13 +284,20 @@
       return isSameDay(d, new Date());
     }
     
+    function isTomorrow(d) {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      return isSameDay(d, tomorrow);
+    }
+    
     function updateHeader() {
       dayName.textContent = formatDayName(currentDate);
       dayDate.textContent = formatDayDate(currentDate);
-      if (isToday(currentDate)) {
-        document.getElementById('go-today').style.display = 'none';
-      } else {
+      // Show Today button only on today or tomorrow
+      if (isToday(currentDate) || isTomorrow(currentDate)) {
         document.getElementById('go-today').style.display = '';
+      } else {
+        document.getElementById('go-today').style.display = 'none';
       }
     }
     
@@ -475,36 +471,22 @@
       renderTasks();
     });
     
-    // Date picker
-    const datePickerModal = document.getElementById('date-picker-modal');
-    const datePickerInput = document.getElementById('date-picker-input');
+    // Date picker - use hidden native input
+    const nativeDatePicker = document.getElementById('native-date-picker');
     
     document.getElementById('pick-date').addEventListener('click', () => {
-      datePickerInput.value = ymd(currentDate);
-      datePickerModal.classList.add('active');
-      // Auto-show the native date picker
-      setTimeout(() => {
-        try { datePickerInput.showPicker(); } catch(e) {}
-      }, 50);
+      nativeDatePicker.value = ymd(currentDate);
+      nativeDatePicker.showPicker?.() || nativeDatePicker.click();
     });
     
-    document.getElementById('date-picker-cancel').addEventListener('click', () => {
-      datePickerModal.classList.remove('active');
-    });
-    
-    document.getElementById('date-picker-go').addEventListener('click', () => {
-      const selected = datePickerInput.value;
+    nativeDatePicker.addEventListener('change', () => {
+      const selected = nativeDatePicker.value;
       if (selected) {
         const [y, m, d] = selected.split('-').map(Number);
         currentDate = new Date(y, m - 1, d);
         updateHeader();
         renderTasks();
       }
-      datePickerModal.classList.remove('active');
-    });
-    
-    datePickerModal.addEventListener('click', (e) => {
-      if (e.target === datePickerModal) datePickerModal.classList.remove('active');
     });
     
     document.getElementById('add-btn').addEventListener('click', () => {
