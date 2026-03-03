@@ -43,6 +43,18 @@
 
   </main>
 
+  <!-- Delete Confirm Modal -->
+  <div id="delete-modal" class="modal-backdrop" style="display:none;" aria-hidden="true">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="delete-modal-title">
+      <h3 id="delete-modal-title" class="modal-title">Delete Task</h3>
+      <p id="delete-modal-message" class="modal-message">Are you sure you want to delete this task?</p>
+      <div class="modal-actions">
+        <button id="delete-modal-cancel" type="button">Cancel</button>
+        <button id="delete-modal-confirm" type="button" style="background:#5a2222;border-color:#5a2222;color:#ff9b9b;">Delete</button>
+      </div>
+    </div>
+  </div>
+
   <script src="app.js?v=202603031140"></script>
 </body>
 </html>

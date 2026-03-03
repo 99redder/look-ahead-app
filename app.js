@@ -15,6 +15,10 @@ const modalSave = document.getElementById('modal-save');
 const modalDelete = document.getElementById('modal-delete');
 const modalNotes = document.getElementById('modal-notes');
 
+const deleteModal = document.getElementById('delete-modal');
+const deleteModalConfirm = document.getElementById('delete-modal-confirm');
+const deleteModalCancel = document.getElementById('delete-modal-cancel');
+
 const taskList = document.getElementById('task-list');
 const calendarGrid = document.getElementById('calendar-grid');
 const calLabel = document.getElementById('cal-label');
@@ -144,6 +148,30 @@ function taskEditorModal(task) {
     modalBackdrop.addEventListener('click', onBackdrop);
     modalInput.addEventListener('keydown', onKey);
     modalNotes.addEventListener('keydown', onNotesKey);
+  });
+}
+
+function confirmDelete(message = 'Are you sure you want to delete this task?') {
+  return new Promise((resolve) => {
+    document.getElementById('delete-modal-message').textContent = message;
+    deleteModal.style.display = 'grid';
+    deleteModal.setAttribute('aria-hidden', 'false');
+    
+    const close = (val) => {
+      deleteModal.style.display = 'none';
+      deleteModal.setAttribute('aria-hidden', 'true');
+      deleteModalConfirm.removeEventListener('click', onConfirm);
+      deleteModalCancel.removeEventListener('click', onCancel);
+      deleteModal.removeEventListener('click', onBackdrop);
+      resolve(val);
+    };
+    const onConfirm = () => close(true);
+    const onCancel = () => close(false);
+    const onBackdrop = (e) => { if (e.target === deleteModal) close(false); };
+    
+    deleteModalConfirm.addEventListener('click', onConfirm);
+    deleteModalCancel.addEventListener('click', onCancel);
+    deleteModal.addEventListener('click', onBackdrop);
   });
 }
 
@@ -293,7 +321,7 @@ calendarGrid.addEventListener('click', async (e) => {
     e.stopPropagation();
     const id = deleteBtn.getAttribute('data-delete-id') || '';
     if (!id) return;
-    if (!confirm('Delete this task?')) return;
+    if (!await confirmDelete()) return;
     try {
       setSync('Deleting...');
       await api('/api/planner/items/delete', { method: 'POST', body: JSON.stringify({ id }) });
@@ -317,7 +345,7 @@ calendarGrid.addEventListener('click', async (e) => {
 
     // Handle delete
     if (next.delete) {
-      if (!confirm('Delete this task?')) return;
+      if (!await confirmDelete()) return;
       try {
         setSync('Deleting...');
         await api('/api/planner/items/delete', { method: 'POST', body: JSON.stringify({ id: existing.id }) });
