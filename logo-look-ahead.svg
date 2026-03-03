@@ -24,9 +24,5 @@
   <circle cx="62" cy="30" r="4" fill="#39FF14"/>
 
   <!-- LOOK AHEAD text -->
-  <text x="90" y="42" fill="url(#grad)" font-size="32" font-family="Inter, Arial, sans-serif" font-weight="800" letter-spacing="1" filter="url(#glow)">LOOK</text>
-  <text x="90" y="68" fill="#B6FFAC" font-size="16" font-family="Inter, Arial, sans-serif" font-weight="600" letter-spacing="2" opacity="0.85">PLANNER</text>
-  
-  <!-- Divider line -->
-  <rect x="88" y="44" width="2" height="20" fill="#214526"/>
+  <text x="90" y="50" fill="url(#grad)" font-size="32" font-family="Inter, Arial, sans-serif" font-weight="800" letter-spacing="1" filter="url(#glow)">Look Ahead</text>
 </svg>
