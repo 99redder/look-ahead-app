@@ -482,7 +482,10 @@
     document.getElementById('pick-date').addEventListener('click', () => {
       datePickerInput.value = ymd(currentDate);
       datePickerModal.classList.add('active');
-      datePickerInput.showPicker?.();
+      // Auto-show the native date picker
+      setTimeout(() => {
+        try { datePickerInput.showPicker(); } catch(e) {}
+      }, 50);
     });
     
     document.getElementById('date-picker-cancel').addEventListener('click', () => {
