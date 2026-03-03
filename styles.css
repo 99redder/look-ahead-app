@@ -34,7 +34,7 @@ button:hover { border-color: var(--pink); color: var(--pink); }
 .rolling-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;max-height:72vh;overflow:auto;padding-right:4px}
 .cal-dow,.cal-day{border:1px solid #214526;border-radius:8px}
 .cal-dow{padding:6px 4px;text-align:center;color:#000;font-size:12px;font-weight:700;background:#39ff14;position:sticky;top:0;z-index:2}
-.cal-day{min-height:280px;padding:8px;display:flex;flex-direction:column;gap:6px;background:#000;color:var(--text);position:relative}
+.cal-day{min-height:360px;padding:8px;display:flex;flex-direction:column;gap:6px;background:#000;color:var(--text);position:relative}
 .cal-day.empty{opacity:.35}
 .cal-day.today{border-color:var(--pink);box-shadow:0 0 0 1px var(--pink) inset}
 .cal-day.month-start{border-color:var(--line);box-shadow:0 0 0 1px rgba(57,255,20,.35) inset}
