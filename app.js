@@ -147,7 +147,11 @@ function renderCalendar() {
     const html = dayItems.slice(0, 4).map(t => `<div class="cal-item" draggable="true" data-drag-task-id="${t.id}">${escapeHtml(t.title)}</div>`).join('');
     const more = dayItems.length > 4 ? `<div class="cal-item">+${dayItems.length - 4} more</div>` : '';
     const isPast = key < todayKey;
-    cells.push(`<div class="cal-day ${key === todayKey ? 'today' : ''} ${isPast ? 'past' : ''}" data-date="${key}"><div class="cal-day-num">${d.getDate()}</div>${html}${more}</div>`);
+    const monthStarts = d.getDate() === 1;
+    const monthBadge = monthStarts
+      ? `<div class="cal-month-badge">${new Intl.DateTimeFormat('en-US', { month: 'short' }).format(d)}</div>`
+      : '';
+    cells.push(`<div class="cal-day ${key === todayKey ? 'today' : ''} ${isPast ? 'past' : ''} ${monthStarts ? 'month-start' : ''}" data-date="${key}">${monthBadge}<div class="cal-day-num">${d.getDate()}</div>${html}${more}</div>`);
   }
 
   calendarGrid.innerHTML = `<div class="rolling-grid">${cells.join('')}</div>`;
