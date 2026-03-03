@@ -165,7 +165,7 @@ calNext.addEventListener('click', () => {
   renderCalendar();
 });
 
-authSubmit.addEventListener('click', async () => {
+async function unlockApp() {
   authError.textContent = '';
   const hash = await sha256Hex(authPassword.value || '');
   if (hash !== PASSWORD_SHA256) {
@@ -175,4 +175,12 @@ authSubmit.addEventListener('click', async () => {
   authOverlay.classList.add('hidden');
   app.classList.remove('hidden');
   await loadTasks();
+}
+
+authSubmit.addEventListener('click', unlockApp);
+authPassword.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    unlockApp();
+  }
 });
