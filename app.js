@@ -100,7 +100,7 @@ function renderCalendar() {
       .sort((a,b) => (a.status === 'done') - (b.status === 'done'));
     const html = dayItems.slice(0, 4).map(t => `<div class="cal-item">${escapeHtml(t.title)}</div>`).join('');
     const more = dayItems.length > 4 ? `<div class="cal-item">+${dayItems.length - 4} more</div>` : '';
-    cells.push(`<div class="cal-day ${key === todayKey ? 'today' : ''}"><div class="cal-day-num">${day}</div>${html}${more}</div>`);
+    cells.push(`<div class="cal-day ${key === todayKey ? 'today' : ''}" data-date="${key}"><div class="cal-day-num">${day}</div>${html}${more}</div>`);
   }
 
   while ((cells.length - 7) % 7 !== 0) cells.push('<div class="cal-day empty"></div>');
@@ -183,6 +183,14 @@ calPrev.addEventListener('click', () => {
 calNext.addEventListener('click', () => {
   calCursor = new Date(calCursor.getFullYear(), calCursor.getMonth() + 1, 1);
   renderCalendar();
+});
+
+calendarGrid.addEventListener('click', (e) => {
+  const cell = e.target.closest('.cal-day[data-date]');
+  if (!cell) return;
+  const ymd = cell.getAttribute('data-date') || '';
+  if (!ymd) return;
+  taskDate.value = ymd;
 });
 
 async function unlockApp() {
