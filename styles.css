@@ -33,7 +33,7 @@ button:hover { border-color: var(--pink); color: var(--pink); }
 .calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;margin-bottom:14px}
 .cal-dow,.cal-day{border:1px solid #214526;border-radius:8px}
 .cal-dow{padding:6px 4px;text-align:center;color:#000;font-size:12px;font-weight:700;background:#39ff14}
-.cal-day{min-height:240px;padding:10px;display:flex;flex-direction:column;gap:7px;background:#0b120d;color:var(--text)}
+.cal-day{min-height:240px;padding:10px;display:flex;flex-direction:column;gap:7px;background:#000;color:var(--text)}
 .cal-day.empty{opacity:.35}
 .cal-day.today{border-color:var(--pink);box-shadow:0 0 0 1px var(--pink) inset}
 .cal-day.past{position:relative;overflow:hidden}
