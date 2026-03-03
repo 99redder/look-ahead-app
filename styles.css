@@ -25,6 +25,7 @@ button:hover { border-color: var(--pink); color: var(--pink); }
 .modal-title{margin:0 0 6px;color:var(--line)}
 .modal-message{margin:0 0 8px;color:var(--muted)}
 .modal-input{width:100%;background:#0b120d;color:var(--text);border:1px solid #39ff14;border-radius:8px;padding:10px}
+.modal-notes{width:100%;margin-top:8px;background:#0b120d;color:var(--text);border:1px solid #24522b;border-radius:8px;padding:10px;resize:vertical;font-family:inherit}
 .modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:10px}
 .section-title { color: var(--pink); margin-bottom: 8px; font-weight: 700; }
 .calendar-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:8px 0}

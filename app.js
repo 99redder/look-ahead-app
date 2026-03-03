@@ -12,6 +12,7 @@ const modalMessage = document.getElementById('modal-message');
 const modalInput = document.getElementById('modal-input');
 const modalCancel = document.getElementById('modal-cancel');
 const modalSave = document.getElementById('modal-save');
+const modalNotes = document.getElementById('modal-notes');
 
 const taskList = document.getElementById('task-list');
 const calendarGrid = document.getElementById('calendar-grid');
@@ -53,6 +54,7 @@ function promptModal({ title = 'Edit', message = '', initialValue = '', saveLabe
     modalTitle.textContent = title;
     modalMessage.textContent = message;
     modalInput.value = initialValue || '';
+    modalNotes.style.display = 'none';
     modalSave.textContent = saveLabel;
     modalBackdrop.style.display = 'grid';
     modalBackdrop.setAttribute('aria-hidden', 'false');
@@ -79,6 +81,63 @@ function promptModal({ title = 'Edit', message = '', initialValue = '', saveLabe
     modalCancel.addEventListener('click', onCancel);
     modalBackdrop.addEventListener('click', onBackdrop);
     modalInput.addEventListener('keydown', onKey);
+  });
+}
+
+function getTaskNotes(taskId) {
+  try {
+    return localStorage.getItem(`lookahead:task-notes:${taskId}`) || '';
+  } catch {
+    return '';
+  }
+}
+
+function setTaskNotes(taskId, notes) {
+  try {
+    const key = `lookahead:task-notes:${taskId}`;
+    if ((notes || '').trim()) localStorage.setItem(key, notes);
+    else localStorage.removeItem(key);
+  } catch {}
+}
+
+function taskEditorModal(task) {
+  return new Promise((resolve) => {
+    modalTitle.textContent = 'Edit Task';
+    modalMessage.textContent = 'Update title and private notes.';
+    modalInput.value = task?.title || '';
+    modalNotes.style.display = 'block';
+    modalNotes.value = getTaskNotes(task.id);
+    modalSave.textContent = 'Save';
+    modalBackdrop.style.display = 'grid';
+    modalBackdrop.setAttribute('aria-hidden', 'false');
+    setTimeout(() => modalInput.focus(), 0);
+
+    const close = (val) => {
+      modalBackdrop.style.display = 'none';
+      modalBackdrop.setAttribute('aria-hidden', 'true');
+      modalNotes.style.display = 'none';
+      modalSave.removeEventListener('click', onSave);
+      modalCancel.removeEventListener('click', onCancel);
+      modalBackdrop.removeEventListener('click', onBackdrop);
+      modalInput.removeEventListener('keydown', onKey);
+      modalNotes.removeEventListener('keydown', onNotesKey);
+      resolve(val);
+    };
+    const onSave = () => close({ title: modalInput.value, notes: modalNotes.value });
+    const onCancel = () => close(null);
+    const onBackdrop = (e) => { if (e.target === modalBackdrop) close(null); };
+    const onKey = (e) => {
+      if (e.key === 'Escape') { e.preventDefault(); onCancel(); }
+    };
+    const onNotesKey = (e) => {
+      if (e.key === 'Escape') { e.preventDefault(); onCancel(); }
+    };
+
+    modalSave.addEventListener('click', onSave);
+    modalCancel.addEventListener('click', onCancel);
+    modalBackdrop.addEventListener('click', onBackdrop);
+    modalInput.addEventListener('keydown', onKey);
+    modalNotes.addEventListener('keydown', onNotesKey);
   });
 }
 
@@ -227,18 +286,15 @@ calendarGrid.addEventListener('click', async (e) => {
     e.preventDefault();
     e.stopPropagation();
     const id = taskChip.getAttribute('data-drag-task-id') || '';
-    const current = taskChip.textContent?.trim() || '';
-    const next = await promptModal({
-      title: 'Rename Task',
-      message: 'Update the task title:',
-      initialValue: current,
-      saveLabel: 'Save'
-    });
-    if (next == null) return;
-    const title = next.trim();
-    if (!title) return;
     const existing = tasks.find(t => String(t.id) === String(id));
     if (!existing) return;
+
+    const next = await taskEditorModal(existing);
+    if (next == null) return;
+
+    const title = (next.title || '').trim();
+    if (!title) return;
+
     try {
       setSync('Syncing…');
       await api('/api/planner/items', {
@@ -253,6 +309,7 @@ calendarGrid.addEventListener('click', async (e) => {
           source: existing.source || 'lookahead-app'
         })
       });
+      setTaskNotes(existing.id, next.notes || '');
       await loadTasks();
     } catch (err) {
       setSync(err.message || 'Sync error', false);
