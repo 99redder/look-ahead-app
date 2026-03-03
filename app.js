@@ -12,6 +12,7 @@ const modalMessage = document.getElementById('modal-message');
 const modalInput = document.getElementById('modal-input');
 const modalCancel = document.getElementById('modal-cancel');
 const modalSave = document.getElementById('modal-save');
+const modalDelete = document.getElementById('modal-delete');
 const modalNotes = document.getElementById('modal-notes');
 
 const taskList = document.getElementById('task-list');
@@ -108,6 +109,7 @@ function taskEditorModal(task) {
     modalNotes.style.display = 'block';
     modalNotes.value = getTaskNotes(task.id);
     modalSave.textContent = 'Save';
+    modalDelete.style.display = 'block';
     modalBackdrop.style.display = 'grid';
     modalBackdrop.setAttribute('aria-hidden', 'false');
     setTimeout(() => modalInput.focus(), 0);
@@ -116,8 +118,10 @@ function taskEditorModal(task) {
       modalBackdrop.style.display = 'none';
       modalBackdrop.setAttribute('aria-hidden', 'true');
       modalNotes.style.display = 'none';
+      modalDelete.style.display = 'none';
       modalSave.removeEventListener('click', onSave);
       modalCancel.removeEventListener('click', onCancel);
+      modalDelete.removeEventListener('click', onDelete);
       modalBackdrop.removeEventListener('click', onBackdrop);
       modalInput.removeEventListener('keydown', onKey);
       modalNotes.removeEventListener('keydown', onNotesKey);
@@ -125,6 +129,7 @@ function taskEditorModal(task) {
     };
     const onSave = () => close({ title: modalInput.value, notes: modalNotes.value });
     const onCancel = () => close(null);
+    const onDelete = () => close({ delete: true });
     const onBackdrop = (e) => { if (e.target === modalBackdrop) close(null); };
     const onKey = (e) => {
       if (e.key === 'Escape') { e.preventDefault(); onCancel(); }
@@ -135,6 +140,7 @@ function taskEditorModal(task) {
 
     modalSave.addEventListener('click', onSave);
     modalCancel.addEventListener('click', onCancel);
+    modalDelete.addEventListener('click', onDelete);
     modalBackdrop.addEventListener('click', onBackdrop);
     modalInput.addEventListener('keydown', onKey);
     modalNotes.addEventListener('keydown', onNotesKey);
@@ -203,7 +209,7 @@ function renderCalendar() {
     const dayItems = tasks
       .filter(t => (t.due_date || '') === key)
       .sort((a,b) => (a.status === 'done') - (b.status === 'done'));
-    const html = dayItems.slice(0, 4).map(t => `<div class="cal-item" draggable="true" data-drag-task-id="${t.id}">${escapeHtml(t.title)}</div>`).join('');
+    const html = dayItems.slice(0, 4).map(t => `<div class="cal-item" draggable="true" data-drag-task-id="${t.id}"><span class="cal-item-title">${escapeHtml(t.title)}</span><span class="cal-item-delete" data-delete-id="${t.id}">×</span></div>`).join('');
     const more = dayItems.length > 4 ? `<div class="cal-item">+${dayItems.length - 4} more</div>` : '';
     const isPast = key < todayKey;
     const monthStarts = d.getDate() === 1;
@@ -281,6 +287,23 @@ calNext.addEventListener('click', () => {
 });
 
 calendarGrid.addEventListener('click', async (e) => {
+  const deleteBtn = e.target.closest('.cal-item-delete');
+  if (deleteBtn) {
+    e.preventDefault();
+    e.stopPropagation();
+    const id = deleteBtn.getAttribute('data-delete-id') || '';
+    if (!id) return;
+    if (!confirm('Delete this task?')) return;
+    try {
+      setSync('Deleting...');
+      await api('/api/planner/items/delete', { method: 'POST', body: JSON.stringify({ id }) });
+      await loadTasks();
+    } catch (err) {
+      setSync(err.message || 'Delete error', false);
+    }
+    return;
+  }
+
   const taskChip = e.target.closest('.cal-item[data-drag-task-id]');
   if (taskChip) {
     e.preventDefault();
@@ -291,6 +314,19 @@ calendarGrid.addEventListener('click', async (e) => {
 
     const next = await taskEditorModal(existing);
     if (next == null) return;
+
+    // Handle delete
+    if (next.delete) {
+      if (!confirm('Delete this task?')) return;
+      try {
+        setSync('Deleting...');
+        await api('/api/planner/items/delete', { method: 'POST', body: JSON.stringify({ id: existing.id }) });
+        await loadTasks();
+      } catch (err) {
+        setSync(err.message || 'Delete error', false);
+      }
+      return;
+    }
 
     const title = (next.title || '').trim();
     if (!title) return;

@@ -53,3 +53,8 @@ button:hover { border-color: var(--pink); color: var(--pink); }
 .cal-day.drop-target{border-color:#7dff63!important;box-shadow:0 0 0 1px #7dff63 inset}
 .item.done .title { text-decoration: line-through; opacity: .6; }
 .actions { display: flex; gap: 6px; }
+
+.cal-item { display: flex; justify-content: space-between; align-items: center; gap: 4px; }
+.cal-item-title { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cal-item-delete { opacity: 0; font-size: 14px; font-weight: 700; cursor: pointer; color: #ff4f4f; padding: 0 2px; }
+.cal-item:hover .cal-item-delete { opacity: 1; }
