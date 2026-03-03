@@ -23,7 +23,6 @@ let tasks = [];
 let calCursor = new Date();
 let calAutoFocused = false;
 let dragTaskId = null;
-calCursor = new Date(calCursor.getFullYear(), calCursor.getMonth(), 1);
 
 
 async function api(path, options = {}) {
@@ -88,9 +87,15 @@ function ymdToday() {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 
-function quarterStart(date) {
-  return new Date(date.getFullYear(), Math.floor(date.getMonth() / 3) * 3, 1);
+function startOfWeek(date) {
+  const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const day = d.getDay();
+  d.setDate(d.getDate() - day);
+  d.setHours(0, 0, 0, 0);
+  return d;
 }
+
+calCursor = startOfWeek(new Date());
 
 function autoFocusCalendarMonthFromTasks() {
   const open = tasks.filter(t => (t.status || 'open') !== 'done' && (t.due_date || '').trim());
@@ -101,7 +106,7 @@ function autoFocusCalendarMonthFromTasks() {
   if (!pick?.due_date) return;
   const [y,m] = pick.due_date.split('-').map(Number);
   if (!y || !m) return;
-  calCursor = quarterStart(new Date(y, m - 1, 1));
+  calCursor = startOfWeek(new Date(y, m - 1, 1));
   calAutoFocused = true;
 }
 
@@ -118,53 +123,34 @@ function escapeHtml(v) {
   return String(v || '').replace(/[&<>'"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
-function renderMonthGrid(year, month, todayKey) {
-  const first = new Date(year, month, 1);
-  const startOffset = first.getDay();
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const cells = [];
+function renderCalendar() {
+  const start = startOfWeek(calCursor);
+  const end = new Date(start.getFullYear(), start.getMonth(), start.getDate() + 83); // 12 weeks window
+
+  const startLabel = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(start);
+  const endLabel = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(end);
+  calLabel.textContent = `${startLabel} – ${endLabel}`;
+
   const dows = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const cells = [];
   dows.forEach(d => cells.push(`<div class="cal-dow">${d}</div>`));
 
-  for (let i = 0; i < startOffset; i++) cells.push('<div class="cal-day empty"></div>');
+  const today = new Date();
+  const todayKey = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
 
-  for (let day = 1; day <= daysInMonth; day++) {
-    const key = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  for (let i = 0; i < 84; i++) {
+    const d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     const dayItems = tasks
       .filter(t => (t.due_date || '') === key)
       .sort((a,b) => (a.status === 'done') - (b.status === 'done'));
     const html = dayItems.slice(0, 4).map(t => `<div class="cal-item" draggable="true" data-drag-task-id="${t.id}">${escapeHtml(t.title)}</div>`).join('');
     const more = dayItems.length > 4 ? `<div class="cal-item">+${dayItems.length - 4} more</div>` : '';
     const isPast = key < todayKey;
-    cells.push(`<div class="cal-day ${key === todayKey ? 'today' : ''} ${isPast ? 'past' : ''}" data-date="${key}"><div class="cal-day-num">${day}</div>${html}${more}</div>`);
+    cells.push(`<div class="cal-day ${key === todayKey ? 'today' : ''} ${isPast ? 'past' : ''}" data-date="${key}"><div class="cal-day-num">${d.getDate()}</div>${html}${more}</div>`);
   }
 
-  while ((cells.length - 7) % 7 !== 0) cells.push('<div class="cal-day empty"></div>');
-
-  const monthLabel = new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' }).format(new Date(year, month, 1));
-  return `<div class="month-block"><div class="month-label">${monthLabel}</div><div class="month-grid">${cells.join('')}</div></div>`;
-}
-
-function renderCalendar() {
-  calCursor = quarterStart(calCursor);
-  const qStart = new Date(calCursor.getFullYear(), calCursor.getMonth(), 1);
-  const qEnd = new Date(qStart.getFullYear(), qStart.getMonth() + 2, 1);
-
-  const startLabel = new Intl.DateTimeFormat('en-US', { month: 'short', year: 'numeric' }).format(qStart);
-  const endLabel = new Intl.DateTimeFormat('en-US', { month: 'short', year: 'numeric' }).format(qEnd);
-  calLabel.textContent = `${startLabel} – ${endLabel}`;
-
-  const today = new Date();
-  const todayKey = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
-
-  const monthsHtml = [0, 1, 2]
-    .map(offset => {
-      const d = new Date(qStart.getFullYear(), qStart.getMonth() + offset, 1);
-      return renderMonthGrid(d.getFullYear(), d.getMonth(), todayKey);
-    })
-    .join('');
-
-  calendarGrid.innerHTML = `<div class="quarter-stack">${monthsHtml}</div>`;
+  calendarGrid.innerHTML = `<div class="rolling-grid">${cells.join('')}</div>`;
 }
 
 function renderList() {
@@ -220,11 +206,11 @@ taskList.addEventListener('change', async (e) => {
 });
 
 calPrev.addEventListener('click', () => {
-  calCursor = new Date(calCursor.getFullYear(), calCursor.getMonth() - 3, 1);
+  calCursor = new Date(calCursor.getFullYear(), calCursor.getMonth(), calCursor.getDate() - 84);
   renderCalendar();
 });
 calNext.addEventListener('click', () => {
-  calCursor = new Date(calCursor.getFullYear(), calCursor.getMonth() + 3, 1);
+  calCursor = new Date(calCursor.getFullYear(), calCursor.getMonth(), calCursor.getDate() + 84);
   renderCalendar();
 });
 

@@ -31,12 +31,9 @@ button:hover { border-color: var(--pink); color: var(--pink); }
 .cal-nav{display:flex;align-items:center;gap:8px}
 .cal-label{min-width:170px;text-align:center;color:var(--line);font-weight:700}
 .calendar-grid{margin-bottom:14px}
-.quarter-stack{display:flex;flex-direction:column;gap:14px;max-height:72vh;overflow:auto;padding-right:4px}
-.month-block{border:1px solid #214526;border-radius:10px;background:#060b08;padding:8px}
-.month-label{color:var(--line);font-weight:700;margin:2px 0 8px 2px}
-.month-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+.rolling-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;max-height:72vh;overflow:auto;padding-right:4px}
 .cal-dow,.cal-day{border:1px solid #214526;border-radius:8px}
-.cal-dow{padding:6px 4px;text-align:center;color:#000;font-size:12px;font-weight:700;background:#39ff14}
+.cal-dow{padding:6px 4px;text-align:center;color:#000;font-size:12px;font-weight:700;background:#39ff14;position:sticky;top:0;z-index:2}
 .cal-day{min-height:150px;padding:8px;display:flex;flex-direction:column;gap:6px;background:#000;color:var(--text)}
 .cal-day.empty{opacity:.35}
 .cal-day.today{border-color:var(--pink);box-shadow:0 0 0 1px var(--pink) inset}
