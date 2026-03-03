@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Matrix bookmark">
+  <rect width="64" height="64" rx="10" fill="#020603"/>
+  <rect x="14" y="8" width="36" height="48" rx="4" fill="#06110a" stroke="#39ff14" stroke-width="2"/>
+  <path d="M18 14h28v34l-14-9-14 9z" fill="#0b1d10" stroke="#39ff14" stroke-width="1.6"/>
+  <text x="32" y="31" text-anchor="middle" font-size="16" font-family="monospace" fill="#39ff14">01</text>
+</svg>
