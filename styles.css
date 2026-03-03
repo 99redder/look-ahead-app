@@ -39,5 +39,7 @@ button:hover { border-color: var(--pink); color: var(--pink); }
 .cal-item{font-size:12px;line-height:1.25;padding:4px 6px;border-radius:5px;background:#102417;border:1px solid #2b6e33;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .list { display: grid; gap: 8px; }
 .item { border: 1px solid #214526; background: var(--panel); border-radius: 8px; padding: 10px; display: flex; justify-content: space-between; gap: 8px; }
+.item.dragging{opacity:.55;transform:scale(.99)}
+.cal-day.drop-target{border-color:#7dff63!important;box-shadow:0 0 0 1px #7dff63 inset}
 .item.done .title { text-decoration: line-through; opacity: .6; }
 .actions { display: flex; gap: 6px; }

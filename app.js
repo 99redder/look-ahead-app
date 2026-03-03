@@ -22,6 +22,7 @@ const calNext = document.getElementById('cal-next');
 let tasks = [];
 let calCursor = new Date();
 let calAutoFocused = false;
+let dragTaskId = null;
 calCursor = new Date(calCursor.getFullYear(), calCursor.getMonth(), 1);
 
 async function sha256Hex(text) {
@@ -111,7 +112,7 @@ function renderCalendar() {
 function renderList() {
   const sorted = [...tasks].sort((a, b) => (a.due_date || '').localeCompare(b.due_date || ''));
   taskList.innerHTML = sorted.map(t => `
-    <div class="item ${t.status === 'done' ? 'done' : ''}">
+    <div class="item ${t.status === 'done' ? 'done' : ''}" draggable="true" data-drag-task-id="${t.id}">
       <div>
         <div class="title">${escapeHtml(t.title)}</div>
         <div>${escapeHtml(t.due_date || 'No date')}</div>
@@ -192,6 +193,55 @@ calendarGrid.addEventListener('click', (e) => {
   const ymd = cell.getAttribute('data-date') || '';
   if (!ymd) return;
   taskDate.value = ymd;
+});
+
+calendarGrid.addEventListener('dragover', (e) => {
+  const cell = e.target.closest('.cal-day[data-date]');
+  if (!cell) return;
+  e.preventDefault();
+  cell.classList.add('drop-target');
+});
+
+calendarGrid.addEventListener('dragleave', (e) => {
+  const cell = e.target.closest('.cal-day[data-date]');
+  if (!cell) return;
+  cell.classList.remove('drop-target');
+});
+
+calendarGrid.addEventListener('drop', async (e) => {
+  const cell = e.target.closest('.cal-day[data-date]');
+  if (!cell) return;
+  e.preventDefault();
+  cell.classList.remove('drop-target');
+  const ymd = cell.getAttribute('data-date') || '';
+  const id = dragTaskId || e.dataTransfer?.getData('text/plain') || '';
+  if (!id || !ymd) return;
+  try {
+    setSync('Syncing…');
+    await api('/api/planner/items/reschedule', { method: 'POST', body: JSON.stringify({ id, dueDate: ymd }) });
+    taskDate.value = ymd;
+    await loadTasks();
+  } catch (err) {
+    setSync(err.message || 'Sync error', false);
+  }
+});
+
+ taskList.addEventListener('dragstart', (e) => {
+  const row = e.target.closest('[data-drag-task-id]');
+  if (!row) return;
+  dragTaskId = row.getAttribute('data-drag-task-id') || null;
+  row.classList.add('dragging');
+  try {
+    e.dataTransfer?.setData('text/plain', dragTaskId || '');
+    if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move';
+  } catch {}
+});
+
+taskList.addEventListener('dragend', (e) => {
+  const row = e.target.closest('[data-drag-task-id]');
+  if (row) row.classList.remove('dragging');
+  dragTaskId = null;
+  document.querySelectorAll('.cal-day.drop-target').forEach((el) => el.classList.remove('drop-target'));
 });
 
 async function unlockApp() {
