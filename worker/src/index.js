@@ -1,51 +1,3 @@
-// ===== LOOK AHEAD PLANNER WORKER =====
-
-export default {
-  async fetch(request, env) {
-    try {
-      const origin = request.headers.get('Origin') || '';
-      const allowedOrigins = (env.ALLOWED_ORIGINS || '*')
-        .split(',')
-        .map(v => v.trim())
-        .filter(Boolean);
-      const allowAll = allowedOrigins.includes('*');
-      const originAllowed = allowAll || !origin || allowedOrigins.includes(origin);
-
-      const corsHeaders = {
-        'Access-Control-Allow-Origin': allowAll ? '*' : (originAllowed ? origin : allowedOrigins[0] || ''),
-        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type',
-        'Vary': 'Origin'
-      };
-
-      if (request.method === 'OPTIONS') {
-        return new Response(null, { status: 204, headers: corsHeaders });
-      }
-
-      if (!originAllowed) {
-        return json({ ok: false, error: 'Origin not allowed' }, 403, corsHeaders);
-      }
-
-      const url = new URL(request.url);      // Debug endpoint
-      if (url.pathname === '/debug-query') {
-        const result = await env.DB.prepare('SELECT 1 as test').all();
-        return json({ ok: true, result }, 200, corsHeaders);
-      }
-
-      // Test direct endpoint
-      if (url.pathname === '/test-items') {
-        return json({ ok: true, items: [] }, 200, corsHeaders);
-      }
-
-      // Table check endpoint
-      if (url.pathname === '/check-table') {
-        const tables = await env.DB.prepare('SELECT name FROM sqlite_master WHERE type="table"').all();
-        return json({ ok: true, tables: tables.results }, 200, corsHeaders);
-      }
-
-      // Debug endpoint
-      if (url.pathname === '/debug') {
-        return json({ ok: true, db: !!env.DB, env: Object.keys(env) }, 200, corsHeaders);
       }
 
 
@@ -94,7 +46,6 @@ function json(payload, status = 200, headers = {}) {
 
 // GET /api/planner/items?userId=xxx&includeDone=1
 async function handleGetItems(request, env, corsHeaders, url) {
-      console.log('handleGetItems called');
   if (!env.DB) return json({ ok: false, error: 'DB not bound' }, 500, corsHeaders);
 
   const userId = url.searchParams.get('userId');
