@@ -26,7 +26,12 @@ export default {
         return json({ ok: false, error: 'Origin not allowed' }, 403, corsHeaders);
       }
 
-      const url = new URL(request.url);
+      const url = new URL(request.url);      // Debug endpoint
+      if (url.pathname === '/debug') {
+        return json({ ok: true, db: !!env.DB, env: Object.keys(env) }, 200, corsHeaders);
+      }
+
+
 
       // GET /api/planner/items - List items
       if (url.pathname === '/api/planner/items' && request.method === 'GET') {
