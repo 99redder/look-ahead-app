@@ -32,6 +32,11 @@ export default {
         return json({ ok: true, result }, 200, corsHeaders);
       }
 
+      // Test direct endpoint
+      if (url.pathname === '/test-items') {
+        return json({ ok: true, items: [] }, 200, corsHeaders);
+      }
+
       // Debug endpoint
       if (url.pathname === '/debug') {
         return json({ ok: true, db: !!env.DB, env: Object.keys(env) }, 200, corsHeaders);
