@@ -1,0 +1,11 @@
+name = "look-ahead-planner"
+main = "src/index.js"
+compatibility_date = "2026-03-03"
+
+[vars]
+ALLOWED_ORIGINS = "*"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "look-ahead-planner-db"
+database_id = ""

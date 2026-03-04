@@ -1,7 +1,8 @@
+// TODO: Update the worker URL below after deploying
 const API_BASES = [
-  'https://eastern-shore-ai-contact.99redder.workers.dev',
-  'https://eastern-shore-ai-contact.florencemaegifts.workers.dev'
+  'https://look-ahead-planner.99redder.workers.dev',
 ];
+
 const USER_ID = 'chris';
 
 const app = document.getElementById('app');
