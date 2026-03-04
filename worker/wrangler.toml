@@ -9,3 +9,18 @@ ALLOWED_ORIGINS = "*"
 binding = "DB"
 database_name = "look-ahead-planner-db"
 database_id = "01e6675a-4f12-4ae9-aae4-e02db520b7d7"
+
+[observability]
+enabled = false
+head_sampling_rate = 1
+
+[observability.logs]
+enabled = true
+head_sampling_rate = 1
+persist = true
+invocation_logs = true
+
+[observability.traces]
+enabled = false
+persist = true
+head_sampling_rate = 1
