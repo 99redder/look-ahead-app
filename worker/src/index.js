@@ -1,6 +1,32 @@
+// ===== LOOK AHEAD PLANNER WORKER =====
+
+export default {
+  async fetch(request, env) {
+    try {
+      const origin = request.headers.get('Origin') || '';
+      const allowedOrigins = (env.ALLOWED_ORIGINS || '*')
+        .split(',')
+        .map(v => v.trim())
+        .filter(Boolean);
+      const allowAll = allowedOrigins.includes('*');
+      const originAllowed = allowAll || !origin || allowedOrigins.includes(origin);
+
+      const corsHeaders = {
+        'Access-Control-Allow-Origin': allowAll ? '*' : (originAllowed ? origin : allowedOrigins[0] || ''),
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type',
+        'Vary': 'Origin'
+      };
+
+      if (request.method === 'OPTIONS') {
+        return new Response(null, { status: 204, headers: corsHeaders });
       }
 
+      if (!originAllowed) {
+        return json({ ok: false, error: 'Origin not allowed' }, 403, corsHeaders);
+      }
 
+      const url = new URL(request.url);
 
       // GET /api/planner/items - List items
       if (url.pathname === '/api/planner/items' && request.method === 'GET') {
@@ -29,7 +55,7 @@
 
       return json({ ok: false, error: 'Not found' }, 404, corsHeaders);
     } catch (e) {
-      return new Response(JSON.stringify({ ok: false, error: e.message, stack: e.stack }), {
+      return new Response(JSON.stringify({ ok: false, error: e.message }), {
         status: 500,
         headers: { 'Content-Type': 'application/json' }
       });
