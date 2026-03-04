@@ -37,6 +37,12 @@ export default {
         return json({ ok: true, items: [] }, 200, corsHeaders);
       }
 
+      // Table check endpoint
+      if (url.pathname === '/check-table') {
+        const tables = await env.DB.prepare('SELECT name FROM sqlite_master WHERE type="table"').all();
+        return json({ ok: true, tables: tables.results }, 200, corsHeaders);
+      }
+
       // Debug endpoint
       if (url.pathname === '/debug') {
         return json({ ok: true, db: !!env.DB, env: Object.keys(env) }, 200, corsHeaders);
