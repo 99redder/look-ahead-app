@@ -1,11 +1,12 @@
 // Service Worker for Look Ahead Mobile
 // Auto-updates when page is opened
 
-const CACHE_NAME = 'look-ahead-mobile-v1';
+const CACHE_NAME = 'look-ahead-mobile-v2';
 const urlsToCache = [
   '/look-ahead-mobile.html',
   '/manifest.json',
-  '/favicon.svg'
+  '/favicon.svg',
+  '/mobile-logo.svg'
 ];
 
 // Install event - cache files
@@ -33,8 +34,13 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Fetch event - network first, fallback to cache
+// Fetch event - network first, skip API requests
 self.addEventListener('fetch', (event) => {
+  // Skip API requests - let them go directly to the network
+  if (event.request.url.includes('/api/')) {
+    return;
+  }
+  
   // Skip non-GET requests
   if (event.request.method !== 'GET') return;
   
