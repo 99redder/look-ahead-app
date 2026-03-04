@@ -27,6 +27,12 @@ export default {
       }
 
       const url = new URL(request.url);      // Debug endpoint
+      if (url.pathname === '/debug-query') {
+        const result = await env.DB.prepare('SELECT 1 as test').all();
+        return json({ ok: true, result }, 200, corsHeaders);
+      }
+
+      // Debug endpoint
       if (url.pathname === '/debug') {
         return json({ ok: true, db: !!env.DB, env: Object.keys(env) }, 200, corsHeaders);
       }
