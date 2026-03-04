@@ -83,6 +83,7 @@ function json(payload, status = 200, headers = {}) {
 
 // GET /api/planner/items?userId=xxx&includeDone=1
 async function handleGetItems(request, env, corsHeaders, url) {
+      console.log('handleGetItems called');
   if (!env.DB) return json({ ok: false, error: 'DB not bound' }, 500, corsHeaders);
 
   const userId = url.searchParams.get('userId');
