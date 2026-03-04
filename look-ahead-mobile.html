@@ -162,6 +162,18 @@
       font-size: 16px;
       margin-bottom: 16px;
     }
+    .modal-notes {
+      width: 100%;
+      background: #0b120d;
+      color: var(--text);
+      border: 1px solid #24522b;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 14px;
+      resize: vertical;
+      font-family: inherit;
+      min-height: 80px;
+    }
     .modal-actions {
       display: flex;
       gap: 12px;
@@ -222,6 +234,7 @@
     <div class="modal">
       <h3 id="modal-title">New Task</h3>
       <input type="text" id="modal-input" placeholder="Task title..." />
+      <textarea id="modal-notes" class="modal-notes" rows="4" placeholder="Notes (optional)"></textarea>
       <div class="modal-actions">
         <button class="modal-btn cancel" id="modal-cancel">Cancel</button>
         <button class="modal-btn save" id="modal-save">Add</button>
@@ -260,6 +273,7 @@
     const syncPill = document.getElementById('sync-pill');
     const modal = document.getElementById('modal');
     const modalInput = document.getElementById('modal-input');
+    const modalNotes = document.getElementById('modal-notes');
     const modalTitle = document.getElementById('modal-title');
     const modalSave = document.getElementById('modal-save');
     const modalCancel = document.getElementById('modal-cancel');
@@ -353,41 +367,49 @@
         return;
       }
       
-      taskList.innerHTML = dayTasks.map(t => `
+      taskList.innerHTML = dayTasks.map(t => {
+        const hasNotes = localStorage.getItem('lookahead:task-notes:' + t.id);
+        return `
         <div class="task-item ${t.status === 'done' ? 'done' : ''}" data-id="${t.id}">
-          <div class="task-title">${escapeHtml(t.title)}</div>
+          <div class="task-title">${escapeHtml(t.title)}${hasNotes ? ' <span style="opacity:0.5;">📝</span>' : ''}</div>
           <div class="task-actions">
             <button class="task-btn done-btn" data-action="toggle">${t.status === 'done' ? '↩' : '✓'}</button>
             <button class="task-btn" data-action="edit">✎</button>
             <button class="task-btn delete-btn" data-action="delete">✕</button>
           </div>
         </div>
-      `).join('');
+      `}).join('');
     }
     
     function escapeHtml(v) {
       return String(v || '').replace(/[&<>'"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
     }
     
-    function openModal(title, saveLabel, initialValue = '', isEdit = false) {
+    function openModal(title, saveLabel, initialValue = '', isEdit = false, taskId = null) {
       modalTitle.textContent = title;
       modalInput.value = initialValue;
+      modalNotes.value = '';
+      if (isEdit && taskId) {
+        modalNotes.value = localStorage.getItem('lookahead:task-notes:' + taskId) || '';
+      }
       modalSave.textContent = saveLabel;
       modal.classList.add('active');
       isEditing = isEdit;
+      editingTaskId = taskId;
       setTimeout(() => modalInput.focus(), 100);
     }
     
     function closeModal() {
       modal.classList.remove('active');
       modalInput.value = '';
+      modalNotes.value = '';
     }
     
-    async function addTask(title) {
+    async function addTask(title, notes) {
       if (!title.trim()) return;
       try {
         setSync('Saving...');
-        await api('/api/planner/items', {
+        const result = await api('/api/planner/items', {
           method: 'POST',
           body: JSON.stringify({
             userId: USER_ID,
@@ -397,6 +419,10 @@
             source: 'lookahead-mobile'
           })
         });
+        // Save notes to localStorage
+        if (notes && notes.trim()) {
+          localStorage.setItem('lookahead:task-notes:' + result.id, notes.trim());
+        }
         closeModal();
         await loadTasks();
       } catch (err) {
@@ -404,7 +430,7 @@
       }
     }
     
-    async function updateTask(id, title) {
+    async function updateTask(id, title, notes) {
       if (!title.trim()) return;
       const existing = tasks.find(t => String(t.id) === String(id));
       if (!existing) return;
@@ -422,6 +448,12 @@
             source: existing.source || 'lookahead-mobile'
           })
         });
+        // Save notes to localStorage
+        if (notes && notes.trim()) {
+          localStorage.setItem('lookahead:task-notes:' + id, notes.trim());
+        } else {
+          localStorage.removeItem('lookahead:task-notes:' + id);
+        }
         closeModal();
         editingTaskId = null;
         await loadTasks();
@@ -498,9 +530,9 @@
     modalCancel.addEventListener('click', closeModal);
     modalSave.addEventListener('click', () => {
       if (isEditing && editingTaskId) {
-        updateTask(editingTaskId, modalInput.value);
+        updateTask(editingTaskId, modalInput.value, modalNotes.value);
       } else {
-        addTask(modalInput.value);
+        addTask(modalInput.value, modalNotes.value);
       }
     });
     
@@ -526,7 +558,7 @@
         const task = tasks.find(t => String(t.id) === String(id));
         if (task) {
           editingTaskId = id;
-          openModal('Edit Task', 'Save', task.title, true);
+          openModal('Edit Task', 'Save', task.title, true, task.id);
         }
       }
     });
