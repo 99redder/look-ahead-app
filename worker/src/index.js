@@ -2,57 +2,64 @@
 
 export default {
   async fetch(request, env) {
-    const origin = request.headers.get('Origin') || '';
-    const allowedOrigins = (env.ALLOWED_ORIGINS || '*')
-      .split(',')
-      .map(v => v.trim())
-      .filter(Boolean);
-    const allowAll = allowedOrigins.includes('*');
-    const originAllowed = allowAll || !origin || allowedOrigins.includes(origin);
+    try {
+      const origin = request.headers.get('Origin') || '';
+      const allowedOrigins = (env.ALLOWED_ORIGINS || '*')
+        .split(',')
+        .map(v => v.trim())
+        .filter(Boolean);
+      const allowAll = allowedOrigins.includes('*');
+      const originAllowed = allowAll || !origin || allowedOrigins.includes(origin);
 
-    const corsHeaders = {
-      'Access-Control-Allow-Origin': allowAll ? '*' : (originAllowed ? origin : allowedOrigins[0] || ''),
-      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
-      'Vary': 'Origin'
-    };
+      const corsHeaders = {
+        'Access-Control-Allow-Origin': allowAll ? '*' : (originAllowed ? origin : allowedOrigins[0] || ''),
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type',
+        'Vary': 'Origin'
+      };
 
-    if (request.method === 'OPTIONS') {
-      return new Response(null, { status: 204, headers: corsHeaders });
+      if (request.method === 'OPTIONS') {
+        return new Response(null, { status: 204, headers: corsHeaders });
+      }
+
+      if (!originAllowed) {
+        return json({ ok: false, error: 'Origin not allowed' }, 403, corsHeaders);
+      }
+
+      const url = new URL(request.url);
+
+      // GET /api/planner/items - List items
+      if (url.pathname === '/api/planner/items' && request.method === 'GET') {
+        return handleGetItems(request, env, corsHeaders, url);
+      }
+
+      // POST /api/planner/items - Create or update item
+      if (url.pathname === '/api/planner/items' && request.method === 'POST') {
+        return handleSaveItem(request, env, corsHeaders, url);
+      }
+
+      // POST /api/planner/items/toggle - Toggle done status
+      if (url.pathname === '/api/planner/items/toggle' && request.method === 'POST') {
+        return handleToggleItem(request, env, corsHeaders, url);
+      }
+
+      // POST /api/planner/items/delete - Delete item
+      if (url.pathname === '/api/planner/items/delete' && request.method === 'POST') {
+        return handleDeleteItem(request, env, corsHeaders, url);
+      }
+
+      // POST /api/planner/items/reschedule - Change due date
+      if (url.pathname === '/api/planner/items/reschedule' && request.method === 'POST') {
+        return handleRescheduleItem(request, env, corsHeaders, url);
+      }
+
+      return json({ ok: false, error: 'Not found' }, 404, corsHeaders);
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: e.message, stack: e.stack }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' }
+      });
     }
-
-    if (!originAllowed) {
-      return json({ ok: false, error: 'Origin not allowed' }, 403, corsHeaders);
-    }
-
-    const url = new URL(request.url);
-
-    // GET /api/planner/items - List items
-    if (url.pathname === '/api/planner/items' && request.method === 'GET') {
-      return handleGetItems(request, env, corsHeaders, url);
-    }
-
-    // POST /api/planner/items - Create or update item
-    if (url.pathname === '/api/planner/items' && request.method === 'POST') {
-      return handleSaveItem(request, env, corsHeaders, url);
-    }
-
-    // POST /api/planner/items/toggle - Toggle done status
-    if (url.pathname === '/api/planner/items/toggle' && request.method === 'POST') {
-      return handleToggleItem(request, env, corsHeaders, url);
-    }
-
-    // POST /api/planner/items/delete - Delete item
-    if (url.pathname === '/api/planner/items/delete' && request.method === 'POST') {
-      return handleDeleteItem(request, env, corsHeaders, url);
-    }
-
-    // POST /api/planner/items/reschedule - Change due date
-    if (url.pathname === '/api/planner/items/reschedule' && request.method === 'POST') {
-      return handleRescheduleItem(request, env, corsHeaders, url);
-    }
-
-    return json({ ok: false, error: 'Not found' }, 404, corsHeaders);
   }
 };
 
@@ -65,7 +72,7 @@ function json(payload, status = 200, headers = {}) {
 
 // GET /api/planner/items?userId=xxx&includeDone=1
 async function handleGetItems(request, env, corsHeaders, url) {
-  if (!env.DB) return json({ ok: false, error: 'DB binding missing' }, 500, corsHeaders);
+  if (!env.DB) return json({ ok: false, error: 'DB not bound' }, 500, corsHeaders);
 
   const userId = url.searchParams.get('userId');
   if (!userId) return json({ ok: false, error: 'Missing userId' }, 400, corsHeaders);
@@ -85,7 +92,7 @@ async function handleGetItems(request, env, corsHeaders, url) {
 
 // POST /api/planner/items - Create or update
 async function handleSaveItem(request, env, corsHeaders, url) {
-  if (!env.DB) return json({ ok: false, error: 'DB binding missing' }, 500, corsHeaders);
+  if (!env.DB) return json({ ok: false, error: 'DB not bound' }, 500, corsHeaders);
 
   let data;
   try {
@@ -125,7 +132,7 @@ async function handleSaveItem(request, env, corsHeaders, url) {
 
 // POST /api/planner/items/toggle
 async function handleToggleItem(request, env, corsHeaders, url) {
-  if (!env.DB) return json({ ok: false, error: 'DB binding missing' }, 500, corsHeaders);
+  if (!env.DB) return json({ ok: false, error: 'DB not bound' }, 500, corsHeaders);
 
   let data;
   try {
@@ -149,7 +156,7 @@ async function handleToggleItem(request, env, corsHeaders, url) {
 
 // POST /api/planner/items/delete
 async function handleDeleteItem(request, env, corsHeaders, url) {
-  if (!env.DB) return json({ ok: false, error: 'DB binding missing' }, 500, corsHeaders);
+  if (!env.DB) return json({ ok: false, error: 'DB not bound' }, 500, corsHeaders);
 
   let data;
   try {
@@ -168,7 +175,7 @@ async function handleDeleteItem(request, env, corsHeaders, url) {
 
 // POST /api/planner/items/reschedule
 async function handleRescheduleItem(request, env, corsHeaders, url) {
-  if (!env.DB) return json({ ok: false, error: 'DB binding missing' }, 500, corsHeaders);
+  if (!env.DB) return json({ ok: false, error: 'DB not bound' }, 500, corsHeaders);
 
   let data;
   try {
