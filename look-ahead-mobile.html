@@ -93,16 +93,20 @@
     .task-item.done { opacity: 0.5; }
     .task-item.done .task-title { text-decoration: line-through; }
     .task-title { font-size: 16px; }
-    .task-actions { display: flex; gap: 8px; }
+    .task-item { cursor: pointer; }
+    .task-actions { display: flex; gap: 16px; }
     .task-btn {
       background: transparent;
-      border: 1px solid #214526;
+      border: 2px solid #214526;
       color: var(--text);
-      padding: 8px 12px;
-      border-radius: 6px;
-      font-size: 14px;
+      padding: 12px 18px;
+      border-radius: 8px;
+      font-size: 20px;
       cursor: pointer;
+      min-width: 50px;
     }
+    .task-btn.done-btn { border-color: var(--line); color: var(--line); }
+    .task-btn.delete-btn { border-color: #5a2222; color: #ff9b9b; }
     .task-btn.done-btn { border-color: var(--line); color: var(--line); }
     .task-btn.delete-btn { border-color: #5a2222; color: #ff9b9b; }
     
@@ -368,8 +372,8 @@
       taskList.innerHTML = dayTasks.map(t => {
         const hasNotes = localStorage.getItem('lookahead:task-notes:' + t.id);
         return `
-        <div class="task-item ${t.status === 'done' ? 'done' : ''}" data-id="${t.id}">
-          <div class="task-title">${escapeHtml(t.title)}${hasNotes ? ' <span style="opacity:0.5;">📝</span>' : ''}</div>
+        <div class="task-item ${t.status === 'done' ? 'done' : ''}" data-id="${t.id}" data-action="edit">
+          <div class="task-title" data-action="edit">${escapeHtml(t.title)}${hasNotes ? ' <span style="opacity:0.5;">📝</span>' : ''}</div>
           <div class="task-actions">
             <button class="task-btn done-btn" data-action="toggle">${t.status === 'done' ? '↩' : '✓'}</button>
             <button class="task-btn" data-action="edit">✎</button>
@@ -544,21 +548,37 @@
     });
     
     taskList.addEventListener('click', async (e) => {
+      // Check if clicked on a button
       const btn = e.target.closest('.task-btn');
-      if (!btn) return;
-      const item = btn.closest('.task-item');
-      const id = item?.dataset.id;
-      const action = btn.dataset.action;
+      if (btn) {
+        const item = btn.closest('.task-item');
+        const id = item?.dataset.id;
+        const action = btn.dataset.action;
+        
+        if (action === 'toggle') await toggleTask(id);
+        if (action === 'delete') await deleteTask(id);
+        if (action === 'edit') {
+          const task = tasks.find(t => String(t.id) === String(id));
+          if (task) {
+            editingTaskId = id;
+            openModal('Edit Task', 'Save', task.title, true, task.id);
+          }
+        }
+        return;
+      }
       
-      if (action === 'toggle') await toggleTask(id);
-      if (action === 'delete') await deleteTask(id);
-      if (action === 'edit') {
+      // Check if clicked on task item (to edit)
+      const item = e.target.closest('.task-item');
+      if (item) {
+        const id = item.dataset.id;
         const task = tasks.find(t => String(t.id) === String(id));
         if (task) {
           editingTaskId = id;
           openModal('Edit Task', 'Save', task.title, true, task.id);
         }
+        return;
       }
+      
     });
     
     // Initialize
