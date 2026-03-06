@@ -3,19 +3,24 @@
 Initial standalone web app scaffold matching the neon planner vibe.
 
 ## Current status
-- GitHub Pages-ready static app
-- Password gate in UI (SHA-256 check)
-- Task add/toggle/delete local storage flow
+- Cloudflare Worker-backed planner API (source of truth)
+- Password login prompt in web + mobile app
+- Password verified server-side via Worker env secret (`APP_PASSWORD`)
+- Task add/toggle/delete against D1 API
 
-## IMPORTANT security note
-This front-end password gate is **not true security** (source is client-visible).
+## Auth setup (replace Cloudflare Access)
+Set the Worker secret:
 
-For real password protection on a public Pages site, use one of:
-1. Cloudflare Access in front of the site (recommended)
-2. Private hosting with server-side auth (not pure Pages)
+```bash
+cd worker
+wrangler secret put APP_PASSWORD
+```
 
-## Next implementation steps
-1. Add shared planner API service (source of truth)
-2. Rewire dashboard Daily Planner to API
-3. Rewire this app to API
-4. Enable real-time sync (SSE)
+Then deploy:
+
+```bash
+wrangler deploy
+```
+
+The app prompts for password on first API call and stores it in localStorage for reuse.
+If the password is wrong/rotated, API returns 401 and the app re-prompts.

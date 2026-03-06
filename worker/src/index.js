@@ -14,7 +14,7 @@ export default {
       const corsHeaders = {
         'Access-Control-Allow-Origin': allowAll ? '*' : (originAllowed ? origin : allowedOrigins[0] || ''),
         'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type',
+        'Access-Control-Allow-Headers': 'Content-Type, X-App-Password',
         'Vary': 'Origin'
       };
 
@@ -27,6 +27,14 @@ export default {
       }
 
       const url = new URL(request.url);
+
+      const appPassword = (env.APP_PASSWORD || '').trim();
+      if (appPassword) {
+        const supplied = (request.headers.get('X-App-Password') || '').trim();
+        if (supplied !== appPassword) {
+          return json({ ok: false, error: 'Unauthorized' }, 401, corsHeaders);
+        }
+      }
 
       // GET /api/planner/items - List items
       if (url.pathname === '/api/planner/items' && request.method === 'GET') {

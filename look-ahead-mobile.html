@@ -268,6 +268,29 @@
     let currentDate = new Date();
     let isEditing = false;
     let editingTaskId = null;
+
+    const APP_PASSWORD_KEY = 'lookahead:app-password';
+
+    function getSavedPassword() {
+      try { return localStorage.getItem(APP_PASSWORD_KEY) || ''; } catch { return ''; }
+    }
+
+    function setSavedPassword(value) {
+      try {
+        if (value) localStorage.setItem(APP_PASSWORD_KEY, value);
+        else localStorage.removeItem(APP_PASSWORD_KEY);
+      } catch {}
+    }
+
+    async function ensureAppPassword(force = false) {
+      let pwd = force ? '' : getSavedPassword();
+      if (pwd) return pwd;
+      pwd = window.prompt('Enter Look Ahead password') || '';
+      pwd = pwd.trim();
+      if (!pwd) throw new Error('Password is required');
+      setSavedPassword(pwd);
+      return pwd;
+    }
     
     const dayName = document.getElementById('day-name');
     const dayDate = document.getElementById('day-date');
@@ -331,12 +354,26 @@
     
     async function api(path, options = {}) {
       let lastErr = null;
+      let appPassword = await ensureAppPassword(false);
+
       for (const base of API_BASES) {
         try {
-          const res = await fetch(`${base}${path}`, {
+          const call = async () => fetch(`${base}${path}`, {
             ...options,
-            headers: { 'Content-Type': 'application/json', ...(options.headers || {}) }
+            headers: {
+              'Content-Type': 'application/json',
+              'X-App-Password': appPassword,
+              ...(options.headers || {})
+            }
           });
+
+          let res = await call();
+          if (res.status === 401) {
+            setSavedPassword('');
+            appPassword = await ensureAppPassword(true);
+            res = await call();
+          }
+
           const data = await res.json().catch(() => ({}));
           if (!res.ok || data.ok === false) throw new Error(data.error || `Request failed (${res.status})`);
           return data;
@@ -429,6 +466,7 @@
         await loadTasks();
       } catch (err) {
         setSync(err.message || 'Error saving', false);
+        alert(err.message || 'Could not save task');
       }
     }
     
