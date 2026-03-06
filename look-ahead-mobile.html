@@ -271,6 +271,7 @@
     let currentDate = new Date();
     let isEditing = false;
     let editingTaskId = null;
+    let authPromptActive = false;
 
     const APP_PASSWORD_KEY = 'lookahead:app-password';
 
@@ -285,11 +286,59 @@
       } catch {}
     }
 
+    function passwordModal() {
+      return new Promise((resolve) => {
+        const prevTitle = modalTitle.textContent;
+        const prevSave = modalSave.textContent;
+        const prevType = modalInput.type;
+        const prevEditing = isEditing;
+        const prevTaskId = editingTaskId;
+
+        authPromptActive = true;
+        modalTitle.textContent = 'Look Ahead Login';
+        modalInput.type = 'password';
+        modalInput.value = '';
+        modalInput.placeholder = 'Password';
+        modalNotes.style.display = 'none';
+        modalSave.textContent = 'Unlock';
+        modal.classList.add('active');
+        isEditing = false;
+        editingTaskId = null;
+        setTimeout(() => modalInput.focus(), 100);
+
+        const cleanup = (val) => {
+          modal.classList.remove('active');
+          authPromptActive = false;
+          modalInput.type = prevType;
+          modalInput.value = '';
+          modalInput.placeholder = 'Task title...';
+          modalTitle.textContent = prevTitle;
+          modalSave.textContent = prevSave;
+          isEditing = prevEditing;
+          editingTaskId = prevTaskId;
+          modalSave.removeEventListener('click', onSave);
+          modalCancel.removeEventListener('click', onCancel);
+          modalInput.removeEventListener('keydown', onKey);
+          resolve(val);
+        };
+
+        const onSave = () => cleanup(modalInput.value || '');
+        const onCancel = () => cleanup('');
+        const onKey = (e) => {
+          if (e.key === 'Enter') { e.preventDefault(); onSave(); }
+          if (e.key === 'Escape') { e.preventDefault(); onCancel(); }
+        };
+
+        modalSave.addEventListener('click', onSave);
+        modalCancel.addEventListener('click', onCancel);
+        modalInput.addEventListener('keydown', onKey);
+      });
+    }
+
     async function ensureAppPassword(force = false) {
       let pwd = force ? '' : getSavedPassword();
       if (pwd) return pwd;
-      pwd = window.prompt('Enter Look Ahead password') || '';
-      pwd = pwd.trim();
+      pwd = (await passwordModal()).trim();
       if (!pwd) throw new Error('Password is required');
       setSavedPassword(pwd);
       return pwd;
@@ -572,6 +621,7 @@
     
     modalCancel.addEventListener('click', closeModal);
     modalSave.addEventListener('click', () => {
+      if (authPromptActive) return;
       if (isEditing && editingTaskId) {
         updateTask(editingTaskId, modalInput.value, modalNotes.value);
       } else {
@@ -584,6 +634,7 @@
     });
     
     modalInput.addEventListener('keydown', (e) => {
+      if (authPromptActive) return;
       if (e.key === 'Enter') modalSave.click();
       if (e.key === 'Escape') closeModal();
     });

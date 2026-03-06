@@ -47,8 +47,16 @@ function setSavedPassword(value) {
 async function ensureAppPassword(force = false) {
   let pwd = force ? '' : getSavedPassword();
   if (pwd) return pwd;
-  pwd = window.prompt('Enter Look Ahead password') || '';
-  pwd = pwd.trim();
+
+  const entered = await promptModal({
+    title: 'Look Ahead Login',
+    message: 'Enter your planner password to sync tasks.',
+    initialValue: '',
+    saveLabel: 'Unlock',
+    inputType: 'password'
+  });
+
+  pwd = (entered || '').trim();
   if (!pwd) throw new Error('Password is required');
   setSavedPassword(pwd);
   return pwd;
