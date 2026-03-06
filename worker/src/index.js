@@ -29,11 +29,13 @@ export default {
       const url = new URL(request.url);
 
       const appPassword = (env.APP_PASSWORD || '').trim();
-      if (appPassword) {
-        const supplied = (request.headers.get('X-App-Password') || '').trim();
-        if (supplied !== appPassword) {
-          return json({ ok: false, error: 'Unauthorized' }, 401, corsHeaders);
-        }
+      if (!appPassword) {
+        return json({ ok: false, error: 'Server auth misconfigured' }, 503, corsHeaders);
+      }
+
+      const supplied = (request.headers.get('X-App-Password') || '').trim();
+      if (supplied !== appPassword) {
+        return json({ ok: false, error: 'Unauthorized' }, 401, corsHeaders);
       }
 
       // GET /api/planner/items - List items
