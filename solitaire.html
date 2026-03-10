@@ -163,6 +163,86 @@
       
       document.getElementById('sol-moves').textContent = moves;
       checkWin();
+      
+      // Add draggable to waste pile
+      const wasteEl = document.getElementById('sol-waste');
+      wasteEl.innerHTML = '';
+      if (waste.length > 0) {
+        const topWaste = waste[waste.length - 1];
+        const wasteCardEl = createCardEl(topWaste);
+        wasteCardEl.draggable = true;
+        wasteCardEl.ondragstart = (e) => {
+          dragging = { from: 'waste', cards: [topWaste] };
+          e.dataTransfer.setData('text/plain', JSON.stringify(dragging));
+        };
+        wasteEl.appendChild(wasteCardEl);
+      }
+      
+      // Make foundations droppable
+      for (let i = 0; i < 4; i++) {
+        const fEl = document.getElementById(`sol-foundation-${i}`);
+        fEl.ondragover = (e) => e.preventDefault();
+        fEl.ondrop = (e) => {
+          e.preventDefault();
+          const data = JSON.parse(e.dataTransfer.getData('text/plain'));
+          if (data.cards.length !== 1) return;
+          const card = data.cards[0];
+          const f = foundations[i];
+          if (f.length === 0) {
+            if (card.rank === 0) {
+              if (data.from === 'waste') waste.pop();
+              else tableau[data.col].splice(data.idx);
+              f.push(card);
+              moves++;
+              render();
+            }
+          } else if (f[f.length - 1].suit === card.suit && card.rank === f[f.length - 1].rank + 1) {
+            if (data.from === 'waste') waste.pop();
+            else tableau[data.col].splice(data.idx);
+            f.push(card);
+            moves++;
+            render();
+          }
+        };
+      }
+      
+      // Make tableau columns droppable
+      tableau.forEach((col, colIdx) => {
+        const colEl = tableauEl.children[colIdx];
+        if (colEl) {
+          colEl.ondragover = (e) => e.preventDefault();
+          colEl.ondrop = (e) => {
+            e.preventDefault();
+            const data = JSON.parse(e.dataTransfer.getData('text/plain'));
+            if (data.from !== 'tableau' && data.from !== 'waste') return;
+            const card = data.cards[0];
+            if (col.length === 0) {
+              if (card.rank === 12) {
+                if (data.from === 'waste') waste.pop();
+                else tableau[data.col].splice(data.idx);
+                data.cards.forEach(c => col.push(c));
+                if (data.from !== 'waste' && tableau[data.col]?.length) {
+                  tableau[data.col][tableau[data.col].length - 1].faceUp = true;
+                }
+                moves++;
+                render();
+              }
+            } else {
+              const top = col[col.length - 1];
+              if (top.faceUp && top.color !== card.color && top.rank === card.rank + 1) {
+                if (data.from === 'waste') waste.pop();
+                else tableau[data.col].splice(data.idx);
+                data.cards.forEach(c => col.push(c));
+                if (data.from !== 'waste' && tableau[data.col]?.length) {
+                  tableau[data.col][tableau[data.col].length - 1].faceUp = true;
+                }
+                moves++;
+                render();
+              }
+            }
+          };
+        }
+      });
     }
 
     function createCardEl(card) {
@@ -312,39 +392,7 @@
       render();
     }
 
-    // Allow drop on tableau
-    document.getElementById('sol-tableau').ondragover = (e) => e.preventDefault();
-    document.getElementById('sol-tableau').ondrop = (e) => {
-      e.preventDefault();
-      const data = JSON.parse(e.dataTransfer.getData('text/plain'));
-      if (data.from !== 'tableau') return;
-      
-      const card = data.cards[0];
-      for (let tc = 0; tc < 7; tc++) {
-        const col = tableau[tc];
-        if (col.length === 0 && card.rank === 12) {
-          const cards = tableau[data.col].splice(data.idx);
-          cards.forEach(c => col.push(c));
-          if (tableau[data.col].length) tableau[data.col][tableau[data.col].length - 1].faceUp = true;
-          moves++;
-          render();
-          return;
-        }
-        if (col.length > 0) {
-          const top = col[col.length - 1];
-          if (top.faceUp && top.color !== card.color && top.rank === card.rank + 1) {
-            const cards = tableau[data.col].splice(data.idx);
-            cards.forEach(c => col.push(c));
-            if (tableau[data.col].length) tableau[data.col][tableau[data.col].length - 1].faceUp = true;
-            moves++;
-            render();
-            return;
-          }
-        }
-      }
-    };
-
-    newGame();
+newGame();
   </script>
 </body>
 </html>
