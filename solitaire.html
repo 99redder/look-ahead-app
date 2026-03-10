@@ -196,15 +196,13 @@
           const f = foundations[i];
           if (f.length === 0) {
             if (card.rank === 0) {
-              if (data.from === 'waste') waste.pop();
-              else tableau[data.col].splice(data.idx);
+              if (data.from === 'waste') { waste.pop(); } else { const srcCol = data.col; tableau[srcCol].splice(data.idx); if (tableau[srcCol].length > 0) tableau[srcCol][tableau[srcCol].length - 1].faceUp = true; }
               f.push(card);
               moves++;
               render();
             }
           } else if (f[f.length - 1].suit === card.suit && card.rank === f[f.length - 1].rank + 1) {
-            if (data.from === 'waste') waste.pop();
-            else tableau[data.col].splice(data.idx);
+            if (data.from === 'waste') { waste.pop(); } else { const srcCol = data.col; tableau[srcCol].splice(data.idx); if (tableau[srcCol].length > 0) tableau[srcCol][tableau[srcCol].length - 1].faceUp = true; }
             f.push(card);
             moves++;
             render();
@@ -224,24 +222,38 @@
             const card = data.cards[0];
             if (col.length === 0) {
               if (card.rank === 12) {
-                if (data.from === 'waste') waste.pop();
-                else tableau[data.col].splice(data.idx);
-                data.cards.forEach(c => col.push(c));
-                if (data.from !== 'waste' && tableau[data.col].length) {
-                  tableau[data.col][tableau[data.col].length - 1].faceUp = true;
+                if (data.from === 'waste') {
+                  waste.pop();
+                } else {
+                  // Store source column index before splicing
+                  const srcCol = data.col;
+                  const srcIdx = data.idx;
+                  tableau[srcCol].splice(srcIdx);
+                  // Flip the new top card of source column if any remain
+                  if (tableau[srcCol].length > 0) {
+                    tableau[srcCol][tableau[srcCol].length - 1].faceUp = true;
+                  }
                 }
+                data.cards.forEach(c => col.push(c));
                 moves++;
                 render();
               }
             } else {
               const top = col[col.length - 1];
               if (top.faceUp && top.color !== card.color && top.rank === card.rank + 1) {
-                if (data.from === 'waste') waste.pop();
-                else tableau[data.col].splice(data.idx);
-                data.cards.forEach(c => col.push(c));
-                if (data.from !== 'waste' && tableau[data.col].length) {
-                  tableau[data.col][tableau[data.col].length - 1].faceUp = true;
+                if (data.from === 'waste') {
+                  waste.pop();
+                } else {
+                  // Store source column index before splicing
+                  const srcCol = data.col;
+                  const srcIdx = data.idx;
+                  tableau[srcCol].splice(srcIdx);
+                  // Flip the new top card of source column if any remain
+                  if (tableau[srcCol].length > 0) {
+                    tableau[srcCol][tableau[srcCol].length - 1].faceUp = true;
+                  }
                 }
+                data.cards.forEach(c => col.push(c));
                 moves++;
                 render();
               }
