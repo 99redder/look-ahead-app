@@ -515,7 +515,9 @@
           localStorage.setItem('lookahead:task-notes:' + result.id, notes.trim());
         }
         closeModal();
+        const scrollPos = window.scrollY;
         await loadTasks();
+        window.scrollTo(0, scrollPos);
       } catch (err) {
         setSync(err.message || 'Error saving', false);
         alert(err.message || 'Could not save task');
@@ -548,7 +550,9 @@
         }
         closeModal();
         editingTaskId = null;
+        const scrollPos = window.scrollY;
         await loadTasks();
+        window.scrollTo(0, scrollPos);
       } catch (err) {
         setSync(err.message || 'Error saving', false);
       }
@@ -563,7 +567,9 @@
           method: 'POST',
           body: JSON.stringify({ id })
         });
+        const scrollPos = window.scrollY;
         await loadTasks();
+        window.scrollTo(0, scrollPos);
       } catch (err) {
         setSync(err.message || 'Error', false);
       }
@@ -577,7 +583,9 @@
           method: 'POST',
           body: JSON.stringify({ id })
         });
+        const scrollPos = window.scrollY;
         await loadTasks();
+        window.scrollTo(0, scrollPos);
       } catch (err) {
         setSync(err.message || 'Error', false);
       }
