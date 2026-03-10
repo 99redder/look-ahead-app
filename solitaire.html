@@ -227,7 +227,7 @@
                 if (data.from === 'waste') waste.pop();
                 else tableau[data.col].splice(data.idx);
                 data.cards.forEach(c => col.push(c));
-                if (data.from !== 'waste' && tableau[data.col]?.length) {
+                if (data.from !== 'waste' && tableau[data.col].length) {
                   tableau[data.col][tableau[data.col].length - 1].faceUp = true;
                 }
                 moves++;
@@ -239,7 +239,7 @@
                 if (data.from === 'waste') waste.pop();
                 else tableau[data.col].splice(data.idx);
                 data.cards.forEach(c => col.push(c));
-                if (data.from !== 'waste' && tableau[data.col]?.length) {
+                if (data.from !== 'waste' && tableau[data.col].length) {
                   tableau[data.col][tableau[data.col].length - 1].faceUp = true;
                 }
                 moves++;
