@@ -328,7 +328,9 @@ if (taskList) {
       setSync('Syncing…');
       if (act === 'toggle') await api('/api/planner/items/toggle', { method: 'POST', body: JSON.stringify({ id }) });
       if (act === 'delete') await api('/api/planner/items/delete', { method: 'POST', body: JSON.stringify({ id }) });
+      const scrollPos = window.scrollY;
       await loadTasks();
+      window.scrollTo(0, scrollPos);
     } catch (err) {
       setSync(err.message || 'Sync error', false);
     }
@@ -343,7 +345,9 @@ if (taskList) {
     try {
       setSync('Syncing…');
       await api('/api/planner/items/reschedule', { method: 'POST', body: JSON.stringify({ id, dueDate }) });
+      const scrollPos = window.scrollY;
       await loadTasks();
+      window.scrollTo(0, scrollPos);
     } catch (err) {
       setSync(err.message || 'Sync error', false);
     }
@@ -370,7 +374,9 @@ calendarGrid.addEventListener('click', async (e) => {
     try {
       setSync('Deleting...');
       await api('/api/planner/items/delete', { method: 'POST', body: JSON.stringify({ id }) });
+      const scrollPos = window.scrollY;
       await loadTasks();
+      window.scrollTo(0, scrollPos);
     } catch (err) {
       setSync(err.message || 'Delete error', false);
     }
@@ -394,7 +400,9 @@ calendarGrid.addEventListener('click', async (e) => {
       try {
         setSync('Deleting...');
         await api('/api/planner/items/delete', { method: 'POST', body: JSON.stringify({ id: existing.id }) });
+        const scrollPos = window.scrollY;
         await loadTasks();
+        window.scrollTo(0, scrollPos);
       } catch (err) {
         setSync(err.message || 'Delete error', false);
       }
@@ -419,7 +427,9 @@ calendarGrid.addEventListener('click', async (e) => {
         })
       });
       setTaskNotes(existing.id, next.notes || '');
+      const scrollPos = window.scrollY;
       await loadTasks();
+      window.scrollTo(0, scrollPos);
     } catch (err) {
       setSync(err.message || 'Sync error', false);
     }
@@ -467,7 +477,9 @@ async function openCreateTaskModalForDay(ymd) {
       method: 'POST',
       body: JSON.stringify({ userId: USER_ID, kind: 'task', title, dueDate: ymd, source: 'lookahead-app' })
     });
+    const scrollPos = window.scrollY;
     await loadTasks();
+    window.scrollTo(0, scrollPos);
   } catch (err) {
     setSync(err.message || 'Sync error', false);
   }
@@ -512,7 +524,9 @@ calendarGrid.addEventListener('drop', async (e) => {
   try {
     setSync('Syncing…');
     await api('/api/planner/items/reschedule', { method: 'POST', body: JSON.stringify({ id, dueDate: ymd }) });
+    const scrollPos = window.scrollY;
     await loadTasks();
+    window.scrollTo(0, scrollPos);
   } catch (err) {
     setSync(err.message || 'Sync error', false);
   }
