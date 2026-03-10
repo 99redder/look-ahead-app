@@ -113,11 +113,11 @@
       waste = [];
       foundations = [[], [], [], []];
       tableau = [];
-      let idx = 0;
+      
       for (let col = 0; col < 7; col++) {
         tableau[col] = [];
         for (let row = 0; row <= col; row++) {
-          const card = { ...deck[idx++], faceUp: row === col };
+          const card = { ...deck.pop(), faceUp: row === col };
           tableau[col].push(card);
         }
       }
