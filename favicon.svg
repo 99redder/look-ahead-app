@@ -1,6 +1,36 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Matrix bookmark">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Look Ahead Calendar">
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#39FF14"/>
+      <stop offset="50%" stop-color="#7DFF63"/>
+      <stop offset="100%" stop-color="#39FF14"/>
+    </linearGradient>
+  </defs>
+  
   <rect width="64" height="64" rx="10" fill="#020603"/>
-  <rect x="14" y="8" width="36" height="48" rx="4" fill="#06110a" stroke="#39ff14" stroke-width="2"/>
-  <path d="M18 14h28v34l-14-9-14 9z" fill="#0b1d10" stroke="#39ff14" stroke-width="1.6"/>
-  <text x="32" y="31" text-anchor="middle" font-size="16" font-family="monospace" fill="#39ff14">01</text>
+  
+  <!-- Calendar body -->
+  <rect x="10" y="12" width="44" height="44" rx="5" stroke="url(#grad)" stroke-width="2" fill="#06110a"/>
+  
+  <!-- Calendar header -->
+  <rect x="10" y="12" width="44" height="12" rx="5" fill="url(#grad)"/>
+  <rect x="10" y="18" width="44" height="6" fill="url(#grad)"/>
+  
+  <!-- Calendar rings -->
+  <rect x="18" y="6" width="4" height="10" rx="2" fill="url(#grad)"/>
+  <rect x="30" y="6" width="4" height="10" rx="2" fill="url(#grad)"/>
+  <rect x="42" y="6" width="4" height="10" rx="2" fill="url(#grad)"/>
+  
+  <!-- Calendar grid -->
+  <line x1="10" y1="32" x2="54" y2="32" stroke="#214526" stroke-width="1"/>
+  <line x1="10" y1="42" x2="54" y2="42" stroke="#214526" stroke-width="1"/>
+  <line x1="24" y1="24" x2="24" y2="56" stroke="#214526" stroke-width="1"/>
+  <line x1="40" y1="24" x2="40" y2="56" stroke="#214526" stroke-width="1"/>
+  
+  <!-- Highlighted today -->
+  <rect x="26" y="35" width="10" height="6" rx="2" fill="#39FF14" opacity="0.3"/>
+  <circle cx="31" cy="38" r="2.5" fill="#39FF14"/>
+  
+  <!-- Arrow indicator -->
+  <path d="M40 48 L46 54 L40 54 L40 60 L34 54 L40 54 Z" fill="url(#grad)"/>
 </svg>
