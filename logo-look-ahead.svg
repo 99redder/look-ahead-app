@@ -6,7 +6,7 @@
       <stop offset="100%" stop-color="#39FF14"/>
     </linearGradient>
     <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-      <feGaussianBlur stdDeviation="3" result="b"/>
+      <feGaussianBlur stdDeviation="2" result="b"/>
       <feMerge>
         <feMergeNode in="b"/>
         <feMergeNode in="SourceGraphic"/>
@@ -14,19 +14,38 @@
     </filter>
   </defs>
 
-  <!-- Background rounded rectangle -->
-  <rect x="4" y="4" width="72" height="72" rx="14" stroke="url(#grad)" stroke-width="3" fill="rgba(13,20,16,0.9)" filter="url(#glow)"/>
-  
-  <!-- Arrow forward -->
-  <path d="M24 56 L50 30 L50 44 L62 44 L62 50 L50 50 L50 64 Z" fill="url(#grad)"/>
-  
-  <!-- Small accent circle -->
-  <circle cx="62" cy="30" r="4" fill="#39FF14"/>
+  <!-- Calendar icon - sharp modern design -->
+  <g filter="url(#glow)">
+    <!-- Calendar body -->
+    <rect x="8" y="12" width="50" height="56" rx="6" stroke="url(#grad)" stroke-width="2.5" fill="rgba(13,20,16,0.9)"/>
+    
+    <!-- Calendar header bar -->
+    <rect x="8" y="12" width="50" height="14" rx="6" fill="url(#grad)"/>
+    <rect x="8" y="20" width="50" height="6" fill="url(#grad)"/>
+    
+    <!-- Calendar rings (3 rings) -->
+    <rect x="16" y="6" width="4" height="12" rx="2" fill="url(#grad)"/>
+    <rect x="31" y="6" width="4" height="12" rx="2" fill="url(#grad)"/>
+    <rect x="46" y="6" width="4" height="12" rx="2" fill="url(#grad)"/>
+    
+    <!-- Calendar grid lines -->
+    <line x1="8" y1="34" x2="58" y2="34" stroke="#214526" stroke-width="1"/>
+    <line x1="8" y1="46" x2="58" y2="46" stroke="#214526" stroke-width="1"/>
+    <line x1="25" y1="26" x2="25" y2="68" stroke="#214526" stroke-width="1"/>
+    <line x1="41" y1="26" x2="41" y2="68" stroke="#214526" stroke-width="1"/>
+    
+    <!-- Highlighted day (today) -->
+    <rect x="29" y="38" width="10" height="8" rx="2" fill="#39FF14" opacity="0.3"/>
+    <circle cx="34" cy="42" r="3" fill="#39FF14"/>
+    
+    <!-- Arrow indicator (forward look) -->
+    <path d="M44 54 L52 62 L44 62 L44 70 L36 62 L44 62 Z" fill="url(#grad)"/>
+  </g>
 
   <!-- LOOK AHEAD text -->
-  <text x="90" y="42" fill="url(#grad)" font-size="32" font-family="Inter, Arial, sans-serif" font-weight="800" letter-spacing="1" filter="url(#glow)">LOOK AHEAD</text>
-  <text x="92" y="68" fill="#B6FFAC" font-size="16" font-family="Inter, Arial, sans-serif" font-weight="600" letter-spacing="2" opacity="0.85">PLANNER</text>
+  <text x="72" y="42" fill="url(#grad)" font-size="32" font-family="Inter, Arial, sans-serif" font-weight="800" letter-spacing="1" filter="url(#glow)">LOOK AHEAD</text>
+  <text x="74" y="68" fill="#B6FFAC" font-size="16" font-family="Inter, Arial, sans-serif" font-weight="600" letter-spacing="2" opacity="0.85">PLANNER</text>
   
   <!-- Divider line -->
-  <rect x="88" y="44" width="2" height="20" fill="#214526"/>
+  <rect x="70" y="44" width="2" height="20" fill="#214526"/>
 </svg>
