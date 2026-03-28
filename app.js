@@ -262,21 +262,20 @@ function escapeHtml(v) {
 }
 
 function renderCalendar() {
-  const start = startOfWeek(calCursor);
-  const end = new Date(start.getFullYear(), start.getMonth(), start.getDate() + 83); // 12 weeks window
+  // Start from the beginning of the current week
+  const today = new Date();
+  const start = startOfWeek(today);
+  const todayKey = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
 
+  // Show only 7 days (current week)
   const startLabel = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(start);
-  const endLabel = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(end);
-  calLabel.textContent = `${startLabel} – ${endLabel}`;
+  calLabel.textContent = startLabel;
 
   const dows = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
   const cells = [];
   dows.forEach(d => cells.push(`<div class="cal-dow">${d}</div>`));
 
-  const today = new Date();
-  const todayKey = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
-
-  for (let i = 0; i < 84; i++) {
+  for (let i = 0; i < 7; i++) {
     const d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i);
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     const dayItems = tasks
@@ -284,12 +283,11 @@ function renderCalendar() {
       .sort((a,b) => (a.status === 'done') - (b.status === 'done'));
     const html = dayItems.slice(0, 4).map(t => `<div class="cal-item" draggable="true" data-drag-task-id="${t.id}"><span class="cal-item-title">${escapeHtml(t.title)}</span><span class="cal-item-delete" data-delete-id="${t.id}">×</span></div>`).join('');
     const more = dayItems.length > 4 ? `<div class="cal-item">+${dayItems.length - 4} more</div>` : '';
-    const isPast = key < todayKey;
     const monthStarts = d.getDate() === 1;
     const monthBadge = monthStarts
       ? `<div class="cal-month-badge">${new Intl.DateTimeFormat('en-US', { month: 'short' }).format(d)}</div>`
       : '';
-    cells.push(`<div class="cal-day ${key === todayKey ? 'today' : ''} ${isPast ? 'past' : ''} ${monthStarts ? 'month-start' : ''}" data-date="${key}">${monthBadge}<div class="cal-day-num">${d.getDate()}</div>${html}${more}</div>`);
+    cells.push(`<div class="cal-day ${key === todayKey ? 'today' : ''}" data-date="${key}">${monthBadge}<div class="cal-day-num">${d.getDate()}</div>${html}${more}</div>`);
   }
 
   calendarGrid.innerHTML = `<div class="rolling-grid">${cells.join('')}</div>`;
@@ -355,11 +353,11 @@ if (taskList) {
 }
 
 calPrev.addEventListener('click', () => {
-  calCursor = new Date(calCursor.getFullYear(), calCursor.getMonth(), calCursor.getDate() - 84);
+  calCursor = new Date(calCursor.getFullYear(), calCursor.getMonth(), calCursor.getDate() - 7);
   renderCalendar();
 });
 calNext.addEventListener('click', () => {
-  calCursor = new Date(calCursor.getFullYear(), calCursor.getMonth(), calCursor.getDate() + 84);
+  calCursor = new Date(calCursor.getFullYear(), calCursor.getMonth(), calCursor.getDate() + 7);
   renderCalendar();
 });
 
