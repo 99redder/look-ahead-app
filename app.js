@@ -266,21 +266,22 @@ function escapeHtml(v) {
 
 function renderCalendar() {
   const today = localDayAnchor();
-  const todayYear = today.getFullYear();
-  const todayMonth = today.getMonth();
-  const todayDay = today.getDate();
-  const todayKey = `${todayYear}-${String(todayMonth + 1).padStart(2,'0')}-${String(todayDay).padStart(2,'0')}`;
+  const start = localDayAnchor(calCursor || today);
+  const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+  const startYear = start.getFullYear();
+  const startMonth = start.getMonth();
+  const startDay = start.getDate();
 
   const daysToShow = focusMode ? 7 : 28;
 
   // Format date explicitly using local time
   const dateFormatter = new Intl.DateTimeFormat('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-  const startLabel = dateFormatter.format(today);
+  const startLabel = dateFormatter.format(start);
 
   if (focusMode) {
-    calLabel.textContent = `Today: ${startLabel}`;
+    calLabel.textContent = `Showing: ${startLabel}`;
   } else {
-    const endDate = new Date(todayYear, todayMonth, todayDay + 83, 12, 0, 0, 0);
+    const endDate = new Date(startYear, startMonth, startDay + (daysToShow - 1), 12, 0, 0, 0);
     const endLabel = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(endDate);
     calLabel.textContent = `${startLabel} – ${endLabel}`;
   }
@@ -295,7 +296,7 @@ function renderCalendar() {
     let otherDays = [];
     
     for (let i = 0; i < 7; i++) {
-      const d = new Date(todayYear, todayMonth, todayDay + i);
+      const d = new Date(startYear, startMonth, startDay + i, 12, 0, 0, 0);
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
       const dayItems = tasks
         .filter(t => (t.due_date || '') === key)
@@ -325,13 +326,13 @@ function renderCalendar() {
     const cells = [];
     dows.forEach(d => cells.push(`<div class="cal-dow">${d}</div>`));
 
-    const offset = today.getDay();
+    const offset = start.getDay();
     for (let i = 0; i < offset; i++) {
       cells.push(`<div class="cal-day past"></div>`);
     }
 
     for (let i = 0; i < daysToShow; i++) {
-      const d = new Date(todayYear, todayMonth, todayDay + i, 12, 0, 0, 0);
+      const d = new Date(startYear, startMonth, startDay + i, 12, 0, 0, 0);
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
       const dayItems = tasks
         .filter(t => (t.due_date || '') === key)
