@@ -30,7 +30,10 @@
 
   <main id="app" class="app">
     <header class="top">
-      <h1 class="brand"><img src="logo-look-ahead.svg" alt="Look Ahead Planner" class="brand-logo" /></h1>
+      <div>
+        <h1 class="brand"><img src="logo-look-ahead.svg" alt="Look Ahead Planner" class="brand-logo" /></h1>
+        <button id="cal-focus" type="button" class="focus-toggle">FOCUS</button>
+      </div>
       <div class="header-actions">
         <span class="sync-pill" id="sync-pill">Local only</span>
 
@@ -43,7 +46,6 @@
         <div class="cal-nav">
           <button id="cal-prev" type="button">←</button>
           <div id="cal-label" class="cal-label"></div>
-          <button id="cal-focus" type="button">FOCUS</button>
           <button id="cal-next" type="button">→</button>
         </div>
       </div>
@@ -64,6 +66,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=202603281743"></script>
+  <script src="app.js?v=202603281802"></script>
 </body>
 </html>
