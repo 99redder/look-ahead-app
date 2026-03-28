@@ -410,13 +410,13 @@ if (taskList) {
 
 calPrev.addEventListener('click', () => {
   const currentWeekStart = startOfWeek(localDayAnchor());
-  const prev = new Date(calCursor.getFullYear(), calCursor.getMonth(), calCursor.getDate() - 7, 12, 0, 0, 0);
+  const prev = new Date(calCursor.getFullYear(), calCursor.getMonth(), calCursor.getDate() - 56, 12, 0, 0, 0);
   calCursor = prev < currentWeekStart ? currentWeekStart : prev;
   renderCalendar();
 });
 
 calNext.addEventListener('click', () => {
-  calCursor = new Date(calCursor.getFullYear(), calCursor.getMonth(), calCursor.getDate() + 7, 12, 0, 0, 0);
+  calCursor = new Date(calCursor.getFullYear(), calCursor.getMonth(), calCursor.getDate() + 56, 12, 0, 0, 0);
   renderCalendar();
 });
 
