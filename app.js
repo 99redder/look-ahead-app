@@ -321,12 +321,15 @@ function renderCalendar() {
     calendarGrid.innerHTML = `<div class="focus-grid">${todayCell}<div class="focus-remaining">${otherDays.join('')}</div></div>`;
   } else {
     // Normal mode: 12 weeks grid
-    const dows = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
     const cells = [];
-    dows.forEach(d => cells.push(`<div class="cal-dow">${d}</div>`));
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(todayYear, todayMonth, todayDay + i, 12, 0, 0, 0);
+      const dow = new Intl.DateTimeFormat('en-US', { weekday: 'short' }).format(d);
+      cells.push(`<div class="cal-dow">${dow}</div>`);
+    }
 
     for (let i = 0; i < daysToShow; i++) {
-      const d = new Date(todayYear, todayMonth, todayDay + i);
+      const d = new Date(todayYear, todayMonth, todayDay + i, 12, 0, 0, 0);
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
       const dayItems = tasks
         .filter(t => (t.due_date || '') === key)
