@@ -23,7 +23,6 @@ const deleteModalCancel = document.getElementById('delete-modal-cancel');
 const taskList = document.getElementById('task-list');
 const calendarGrid = document.getElementById('calendar-grid');
 const calLabel = document.getElementById('cal-label');
-const calPrev = document.getElementById('cal-prev');
 const calNext = document.getElementById('cal-next');
 
 let tasks = [];
