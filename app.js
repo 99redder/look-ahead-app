@@ -561,4 +561,5 @@ if (taskList) {
 
 loadTasks().catch((err) => {
   setSync(err?.message || 'Network error when attempting to fetch resource', false);
+  render(); // Still render the calendar even if API fails
 });
