@@ -20,12 +20,12 @@ button:hover { border-color: var(--pink); color: var(--pink); }
 .top { display: flex; justify-content: space-between; align-items: center; }
 .top h1 { margin: 0 0 12px; color: var(--line); }
 .brand{display:flex;align-items:center;margin:0}
-.brand-logo{height:52px;width:auto;display:block;filter:drop-shadow(0 0 10px rgba(57,255,20,.35))}
+.brand-logo{height:52px;width:auto;display:block}
 .sync-pill { border: 1px solid var(--line); border-radius: 999px; padding: 4px 10px; font-size: 12px; color: var(--muted); }
 .header-actions { display: flex; align-items: center; gap: 10px; }
 
 .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.6);display:grid;place-items:center;z-index:2000}
-.modal-card{width:min(520px,92vw);background:#081009;border:1px solid var(--line);border-radius:10px;padding:14px;box-shadow:0 0 22px rgba(57,255,20,.2)}
+.modal-card{width:min(520px,92vw);background:#081009;border:1px solid var(--line);border-radius:10px;padding:14px}
 .modal-title{margin:0 0 6px;color:var(--line)}
 .modal-message{margin:0 0 8px;color:var(--muted)}
 .modal-input{width:100%;background:#0b120d;color:var(--text);border:1px solid #39ff14;border-radius:8px;padding:10px}
@@ -36,10 +36,10 @@ button:hover { border-color: var(--pink); color: var(--pink); }
 .cal-nav{display:flex;align-items:center;gap:8px}
 .cal-label{min-width:170px;text-align:center;color:var(--line);font-weight:700}
 .calendar-grid{margin-bottom:14px}
-.rolling-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;height:calc(100vh - 170px);overflow:auto;padding-right:4px}
+.rolling-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;height:calc(100vh - 170px);overflow:auto;padding-right:4px;content-visibility:auto;contain:layout paint style}
 .cal-dow,.cal-day{border:1px solid #214526;border-radius:8px}
 .cal-dow{padding:6px 4px;text-align:center;color:#000;font-size:12px;font-weight:700;background:#39ff14;position:sticky;top:0;z-index:2}
-.cal-day{min-height:360px;padding:8px;display:flex;flex-direction:column;gap:6px;background:rgba(0,0,0,.44);color:var(--text);position:relative;backdrop-filter: blur(.25px)}
+.cal-day{min-height:300px;padding:8px;display:flex;flex-direction:column;gap:6px;background:#050805;color:var(--text);position:relative;contain:layout paint}
 .cal-day.empty{opacity:.35}
 .cal-day.today{border-color:var(--pink);box-shadow:0 0 0 1px var(--pink) inset}
 .cal-day.month-start{border-color:var(--line);box-shadow:0 0 0 1px rgba(57,255,20,.35) inset}
@@ -67,6 +67,8 @@ button:hover { border-color: var(--pink); color: var(--pink); }
   grid-template-columns: 1fr 1fr;
   gap: 8px;
   height: calc(100vh - 170px);
+  content-visibility: auto;
+  contain: layout paint style;
 }
 .focus-today {
   display: flex;
