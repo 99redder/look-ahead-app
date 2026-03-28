@@ -327,7 +327,7 @@ function renderCalendar() {
 
     const offset = today.getDay();
     for (let i = 0; i < offset; i++) {
-      cells.push(`<div class="cal-day empty"></div>`);
+      cells.push(`<div class="cal-day past"></div>`);
     }
 
     for (let i = 0; i < daysToShow; i++) {
