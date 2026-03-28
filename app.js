@@ -320,12 +320,14 @@ function renderCalendar() {
     
     calendarGrid.innerHTML = `<div class="focus-grid">${todayCell}<div class="focus-remaining">${otherDays.join('')}</div></div>`;
   } else {
-    // Normal mode: 12 weeks grid
+    // Normal mode: fixed Sun-Sat columns, starting with the current week
+    const dows = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
     const cells = [];
-    for (let i = 0; i < 7; i++) {
-      const d = new Date(todayYear, todayMonth, todayDay + i, 12, 0, 0, 0);
-      const dow = new Intl.DateTimeFormat('en-US', { weekday: 'short' }).format(d);
-      cells.push(`<div class="cal-dow">${dow}</div>`);
+    dows.forEach(d => cells.push(`<div class="cal-dow">${d}</div>`));
+
+    const offset = today.getDay();
+    for (let i = 0; i < offset; i++) {
+      cells.push(`<div class="cal-day empty"></div>`);
     }
 
     for (let i = 0; i < daysToShow; i++) {
