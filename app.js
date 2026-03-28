@@ -99,10 +99,12 @@ function setSync(text, ok = true) {
   syncPill.style.color = ok ? 'var(--muted)' : '#ff8fb3';
 }
 
-function promptModal({ title = 'Edit', message = '', initialValue = '', saveLabel = 'Save' }) {
+function promptModal({ title = 'Edit', message = '', initialValue = '', saveLabel = 'Save', inputType = 'text' }) {
   return new Promise((resolve) => {
+    const previousType = modalInput.type;
     modalTitle.textContent = title;
     modalMessage.textContent = message;
+    modalInput.type = inputType;
     modalInput.value = initialValue || '';
     modalNotes.style.display = 'none';
     modalSave.textContent = saveLabel;
@@ -113,6 +115,7 @@ function promptModal({ title = 'Edit', message = '', initialValue = '', saveLabe
     const close = (val) => {
       modalBackdrop.style.display = 'none';
       modalBackdrop.setAttribute('aria-hidden', 'true');
+      modalInput.type = previousType;
       modalSave.removeEventListener('click', onSave);
       modalCancel.removeEventListener('click', onCancel);
       modalBackdrop.removeEventListener('click', onBackdrop);
