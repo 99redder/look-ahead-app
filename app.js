@@ -220,20 +220,23 @@ function confirmDelete(message = 'Are you sure you want to delete this task?') {
   });
 }
 
+function localDayAnchor(date = new Date()) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate(), 12, 0, 0, 0);
+}
+
 function ymdToday() {
-  const d = new Date();
+  const d = localDayAnchor();
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 
 function startOfWeek(date) {
-  const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const d = localDayAnchor(date);
   const day = d.getDay();
   d.setDate(d.getDate() - day);
-  d.setHours(0, 0, 0, 0);
-  return d;
+  return localDayAnchor(d);
 }
 
-calCursor = new Date(); // Always start from today
+calCursor = localDayAnchor(); // Always start from today
 
 function autoFocusCalendarMonthFromTasks() {
   const open = tasks.filter(t => (t.status || 'open') !== 'done' && (t.due_date || '').trim());
@@ -262,26 +265,22 @@ function escapeHtml(v) {
 }
 
 function renderCalendar() {
-  // Use local date explicitly
-  const now = new Date();
-  const todayYear = now.getFullYear();
-  const todayMonth = now.getMonth();
-  const todayDay = now.getDate();
-  
-  // Create today at local midnight
-  const today = new Date(todayYear, todayMonth, todayDay);
+  const today = localDayAnchor();
+  const todayYear = today.getFullYear();
+  const todayMonth = today.getMonth();
+  const todayDay = today.getDate();
   const todayKey = `${todayYear}-${String(todayMonth + 1).padStart(2,'0')}-${String(todayDay).padStart(2,'0')}`;
 
   const daysToShow = focusMode ? 7 : 84;
-  
+
   // Format date explicitly using local time
   const dateFormatter = new Intl.DateTimeFormat('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
   const startLabel = dateFormatter.format(today);
-  
+
   if (focusMode) {
     calLabel.textContent = `Today: ${startLabel}`;
   } else {
-    const endDate = new Date(todayYear, todayMonth, todayDay + 83);
+    const endDate = new Date(todayYear, todayMonth, todayDay + 83, 12, 0, 0, 0);
     const endLabel = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(endDate);
     calLabel.textContent = `${startLabel} – ${endLabel}`;
   }

@@ -268,7 +268,7 @@
     const USER_ID = 'chris';
     
     let tasks = [];
-    let currentDate = new Date();
+    let currentDate = new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate(), 12, 0, 0, 0);
     let isEditing = false;
     let editingTaskId = null;
     let authPromptActive = false;
@@ -374,11 +374,13 @@
     }
     
     function isToday(d) {
-      return isSameDay(d, new Date());
+      const now = new Date();
+      return isSameDay(d, new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12, 0, 0, 0));
     }
     
     function isTomorrow(d) {
-      const tomorrow = new Date();
+      const now = new Date();
+      const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12, 0, 0, 0);
       tomorrow.setDate(tomorrow.getDate() + 1);
       return isSameDay(d, tomorrow);
     }
@@ -605,7 +607,8 @@
     });
     
     document.getElementById('go-today').addEventListener('click', () => {
-      currentDate = new Date();
+      const now = new Date();
+      currentDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12, 0, 0, 0);
       updateHeader();
       renderTasks();
     });
