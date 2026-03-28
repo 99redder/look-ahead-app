@@ -271,7 +271,7 @@ function renderCalendar() {
   const todayDay = today.getDate();
   const todayKey = `${todayYear}-${String(todayMonth + 1).padStart(2,'0')}-${String(todayDay).padStart(2,'0')}`;
 
-  const daysToShow = focusMode ? 7 : 56;
+  const daysToShow = focusMode ? 7 : 28;
 
   // Format date explicitly using local time
   const dateFormatter = new Intl.DateTimeFormat('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
