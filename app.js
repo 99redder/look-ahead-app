@@ -239,11 +239,11 @@ function startOfWeek(date) {
   return localDayAnchor(d);
 }
 
-calCursor = localDayAnchor(); // Always start from today
+calCursor = startOfWeek(localDayAnchor()); // Always start from current week
 
 function autoFocusCalendarMonthFromTasks() {
   // Keep the calendar anchored to the current week unless the user moves it.
-  calCursor = localDayAnchor();
+  calCursor = startOfWeek(localDayAnchor());
   calAutoFocused = true;
 }
 
@@ -262,8 +262,9 @@ function escapeHtml(v) {
 
 function renderCalendar() {
   const today = localDayAnchor();
-  const cursor = localDayAnchor(calCursor || today);
-  const start = cursor < today ? today : cursor;
+  const currentWeekStart = startOfWeek(today);
+  const cursor = startOfWeek(localDayAnchor(calCursor || currentWeekStart));
+  const start = cursor < currentWeekStart ? currentWeekStart : cursor;
   const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
   const startYear = start.getFullYear();
   const startMonth = start.getMonth();
