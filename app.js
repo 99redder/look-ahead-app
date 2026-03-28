@@ -262,18 +262,23 @@ function escapeHtml(v) {
 }
 
 function renderCalendar() {
-  // Start from today, show 12 weeks forward (or 1 week in focus mode)
-  const today = new Date();
-  const start = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-  const todayKey = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+  // Use a fixed "today" reference to avoid timezone inconsistencies
+  const now = new Date();
+  const todayYear = now.getFullYear();
+  const todayMonth = now.getMonth();
+  const todayDate = now.getDate();
+  
+  // Create today at local midnight
+  const today = new Date(todayYear, todayMonth, todayDate);
+  const todayKey = `${todayYear}-${String(todayMonth + 1).padStart(2,'0')}-${String(todayDate).padStart(2,'0')}`;
 
-  const daysToShow = focusMode ? 7 : 84; // 1 week vs 12 weeks
-  const startLabel = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(start);
+  const daysToShow = focusMode ? 7 : 84;
+  const startLabel = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(today);
   
   if (focusMode) {
     calLabel.textContent = startLabel;
   } else {
-    const endDate = new Date(start.getFullYear(), start.getMonth(), start.getDate() + 83);
+    const endDate = new Date(todayYear, todayMonth, todayDate + 83);
     const endLabel = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(endDate);
     calLabel.textContent = `${startLabel} – ${endLabel}`;
   }
@@ -283,7 +288,7 @@ function renderCalendar() {
   dows.forEach(d => cells.push(`<div class="cal-dow">${d}</div>`));
 
   for (let i = 0; i < daysToShow; i++) {
-    const d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i);
+    const d = new Date(todayYear, todayMonth, todayDate + i);
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     const dayItems = tasks
       .filter(t => (t.due_date || '') === key)
