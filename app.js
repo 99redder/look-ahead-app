@@ -266,7 +266,8 @@ function escapeHtml(v) {
 
 function renderCalendar() {
   const today = localDayAnchor();
-  const start = localDayAnchor(calCursor || today);
+  const cursor = localDayAnchor(calCursor || today);
+  const start = cursor < today ? today : cursor;
   const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
   const startYear = start.getFullYear();
   const startMonth = start.getMonth();
