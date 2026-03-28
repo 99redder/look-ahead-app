@@ -233,7 +233,7 @@ function startOfWeek(date) {
   return d;
 }
 
-calCursor = startOfWeek(new Date());
+calCursor = new Date(); // Always start from today
 
 function autoFocusCalendarMonthFromTasks() {
   const open = tasks.filter(t => (t.status || 'open') !== 'done' && (t.due_date || '').trim());
@@ -262,20 +262,21 @@ function escapeHtml(v) {
 }
 
 function renderCalendar() {
-  // Start from the beginning of the current week
+  // Start from today, show 12 weeks forward
   const today = new Date();
-  const start = startOfWeek(today);
+  const start = new Date(today.getFullYear(), today.getMonth(), today.getDate());
   const todayKey = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
 
-  // Show only 7 days (current week)
   const startLabel = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(start);
-  calLabel.textContent = startLabel;
+  const endDate = new Date(start.getFullYear(), start.getMonth(), start.getDate() + 83);
+  const endLabel = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(endDate);
+  calLabel.textContent = `${startLabel} – ${endLabel}`;
 
   const dows = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
   const cells = [];
   dows.forEach(d => cells.push(`<div class="cal-dow">${d}</div>`));
 
-  for (let i = 0; i < 7; i++) {
+  for (let i = 0; i < 84; i++) {
     const d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i);
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     const dayItems = tasks
