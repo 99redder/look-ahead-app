@@ -239,15 +239,8 @@ function startOfWeek(date) {
 calCursor = localDayAnchor(); // Always start from today
 
 function autoFocusCalendarMonthFromTasks() {
-  const open = tasks.filter(t => (t.status || 'open') !== 'done' && (t.due_date || '').trim());
-  if (!open.length) return;
-  const today = ymdToday();
-  const future = open.filter(t => t.due_date >= today).sort((a,b) => a.due_date.localeCompare(b.due_date));
-  const pick = future[0] || open.sort((a,b) => a.due_date.localeCompare(b.due_date))[0];
-  if (!pick?.due_date) return;
-  const [y,m] = pick.due_date.split('-').map(Number);
-  if (!y || !m) return;
-  calCursor = startOfWeek(new Date(y, m - 1, 1));
+  // Keep the calendar anchored to the current week unless the user moves it.
+  calCursor = localDayAnchor();
   calAutoFocused = true;
 }
 
