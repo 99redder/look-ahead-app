@@ -30,6 +30,7 @@ let tasks = [];
 let calCursor = new Date();
 let calAutoFocused = false;
 let dragTaskId = null;
+let focusMode = false; // When true, show only 1 week instead of 12
 
 const APP_PASSWORD_KEY = 'lookahead:app-password';
 
@@ -262,21 +263,27 @@ function escapeHtml(v) {
 }
 
 function renderCalendar() {
-  // Start from today, show 12 weeks forward
+  // Start from today, show 12 weeks forward (or 1 week in focus mode)
   const today = new Date();
   const start = new Date(today.getFullYear(), today.getMonth(), today.getDate());
   const todayKey = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
 
+  const daysToShow = focusMode ? 7 : 84; // 1 week vs 12 weeks
   const startLabel = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(start);
-  const endDate = new Date(start.getFullYear(), start.getMonth(), start.getDate() + 83);
-  const endLabel = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(endDate);
-  calLabel.textContent = `${startLabel} – ${endLabel}`;
+  
+  if (focusMode) {
+    calLabel.textContent = startLabel;
+  } else {
+    const endDate = new Date(start.getFullYear(), start.getMonth(), start.getDate() + 83);
+    const endLabel = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(endDate);
+    calLabel.textContent = `${startLabel} – ${endLabel}`;
+  }
 
   const dows = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
   const cells = [];
   dows.forEach(d => cells.push(`<div class="cal-dow">${d}</div>`));
 
-  for (let i = 0; i < 84; i++) {
+  for (let i = 0; i < daysToShow; i++) {
     const d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i);
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     const dayItems = tasks
@@ -353,12 +360,14 @@ if (taskList) {
   });
 }
 
-calPrev.addEventListener('click', () => {
-  calCursor = new Date(calCursor.getFullYear(), calCursor.getMonth(), calCursor.getDate() - 7);
-  renderCalendar();
-});
 calNext.addEventListener('click', () => {
   calCursor = new Date(calCursor.getFullYear(), calCursor.getMonth(), calCursor.getDate() + 7);
+  renderCalendar();
+});
+
+document.getElementById('cal-focus').addEventListener('click', () => {
+  focusMode = !focusMode;
+  document.getElementById('cal-focus').textContent = focusMode ? 'EXPAND' : 'FOCUS';
   renderCalendar();
 });
 
