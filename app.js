@@ -262,24 +262,27 @@ function escapeHtml(v) {
 }
 
 function renderCalendar() {
-  // Use a fixed "today" reference to avoid timezone inconsistencies
+  // Use local date explicitly
   const now = new Date();
   const todayYear = now.getFullYear();
   const todayMonth = now.getMonth();
-  const todayDate = now.getDate();
+  const todayDay = now.getDate();
   
   // Create today at local midnight
-  const today = new Date(todayYear, todayMonth, todayDate);
-  const todayKey = `${todayYear}-${String(todayMonth + 1).padStart(2,'0')}-${String(todayDate).padStart(2,'0')}`;
+  const today = new Date(todayYear, todayMonth, todayDay);
+  const todayKey = `${todayYear}-${String(todayMonth + 1).padStart(2,'0')}-${String(todayDay).padStart(2,'0')}`;
 
   const daysToShow = focusMode ? 7 : 84;
-  const startLabel = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(today);
+  
+  // Format date explicitly using local time
+  const dateFormatter = new Intl.DateTimeFormat('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  const startLabel = dateFormatter.format(today);
   
   if (focusMode) {
-    calLabel.textContent = startLabel;
+    calLabel.textContent = `Today: ${startLabel}`;
   } else {
-    const endDate = new Date(todayYear, todayMonth, todayDate + 83);
-    const endLabel = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(endDate);
+    const endDate = new Date(todayYear, todayMonth, todayDay + 83);
+    const endLabel = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(endDate);
     calLabel.textContent = `${startLabel} – ${endLabel}`;
   }
 
@@ -288,7 +291,7 @@ function renderCalendar() {
   dows.forEach(d => cells.push(`<div class="cal-dow">${d}</div>`));
 
   for (let i = 0; i < daysToShow; i++) {
-    const d = new Date(todayYear, todayMonth, todayDate + i);
+    const d = new Date(todayYear, todayMonth, todayDay + i);
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     const dayItems = tasks
       .filter(t => (t.due_date || '') === key)
