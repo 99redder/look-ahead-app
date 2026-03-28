@@ -23,6 +23,7 @@ const deleteModalCancel = document.getElementById('delete-modal-cancel');
 const taskList = document.getElementById('task-list');
 const calendarGrid = document.getElementById('calendar-grid');
 const calLabel = document.getElementById('cal-label');
+const calPrev = document.getElementById('cal-prev');
 const calNext = document.getElementById('cal-next');
 
 let tasks = [];
@@ -407,8 +408,15 @@ if (taskList) {
   });
 }
 
+calPrev.addEventListener('click', () => {
+  const currentWeekStart = startOfWeek(localDayAnchor());
+  const prev = new Date(calCursor.getFullYear(), calCursor.getMonth(), calCursor.getDate() - 7, 12, 0, 0, 0);
+  calCursor = prev < currentWeekStart ? currentWeekStart : prev;
+  renderCalendar();
+});
+
 calNext.addEventListener('click', () => {
-  calCursor = new Date(calCursor.getFullYear(), calCursor.getMonth(), calCursor.getDate() + 7);
+  calCursor = new Date(calCursor.getFullYear(), calCursor.getMonth(), calCursor.getDate() + 7, 12, 0, 0, 0);
   renderCalendar();
 });
 
