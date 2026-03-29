@@ -1,0 +1,52 @@
+{
+  "interactionModel": {
+    "languageModel": {
+      "invocationName": "look ahead",
+      "intents": [
+        {
+          "name": "AddTaskIntent",
+          "slots": [
+            {
+              "name": "title",
+              "type": "AMAZON.SearchQuery"
+            },
+            {
+              "name": "datePhrase",
+              "type": "AMAZON.SearchQuery"
+            }
+          ],
+          "samples": [
+            "add {title} {datePhrase}",
+            "create task {title} {datePhrase}",
+            "remember {title} {datePhrase}",
+            "add {title} for {datePhrase}",
+            "add task {title} for {datePhrase}"
+          ]
+        },
+        {
+          "name": "GetTodayIntent",
+          "samples": [
+            "what is on my calendar today",
+            "what do I have today",
+            "what is scheduled today",
+            "read todays tasks",
+            "what is on look ahead today"
+          ]
+        },
+        {
+          "name": "AMAZON.HelpIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.CancelIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.StopIntent",
+          "samples": []
+        }
+      ],
+      "types": []
+    }
+  }
+}
