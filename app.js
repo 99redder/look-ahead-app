@@ -368,7 +368,7 @@ function renderCalendar() {
 
 function renderList() {
   if (!taskList) return;
-  const sorted = [...tasks].sort((a, b) => ((a.due_date || '').localeCompare(b.due_date || '') || timeSortValue(a).localeCompare(timeSortValue(b)));
+  const sorted = [...tasks].sort((a, b) => ((a.due_date || '').localeCompare(b.due_date || '') || timeSortValue(a).localeCompare(timeSortValue(b))));
   taskList.innerHTML = sorted.map(t => `
     <div class="item ${t.status === 'done' ? 'done' : ''}" draggable="true" data-drag-task-id="${t.id}">
       <div>
