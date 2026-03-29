@@ -104,7 +104,6 @@ function setSync(text, ok = true) {
 function promptModal({ title = 'Edit', message = '', initialValue = '', saveLabel = 'Save', inputType = 'text' }) {
   return new Promise((resolve) => {
     const previousType = modalInput.type;
-    const previousTime = modalTime.value;
     const isPassword = inputType === 'password';
     modalTitle.textContent = title;
     modalMessage.textContent = message;
@@ -123,7 +122,7 @@ function promptModal({ title = 'Edit', message = '', initialValue = '', saveLabe
       modalBackdrop.setAttribute('aria-hidden', 'true');
       modalInput.type = previousType;
       modalTime.style.display = 'block';
-      modalTime.value = previousTime;
+      modalTime.value = '';
       modalSave.removeEventListener('click', onSave);
       modalCancel.removeEventListener('click', onCancel);
       modalBackdrop.removeEventListener('click', onBackdrop);
