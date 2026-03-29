@@ -80,15 +80,6 @@ function json(payload, status = 200, headers = {}) {
   });
 }
 
-async function hasDueTimeColumn(env) {
-  try {
-    const result = await env.DB.prepare(`PRAGMA table_info(planner_items)`).all();
-    return (result.results || []).some((row) => String(row.name || '').toLowerCase() === 'due_time');
-  } catch {
-    return false;
-  }
-}
-
 // GET /api/planner/items?userId=xxx&includeDone=1
 async function handleGetItems(request, env, corsHeaders, url) {
   if (!env.DB) return json({ ok: false, error: 'DB not bound' }, 500, corsHeaders);
@@ -97,20 +88,15 @@ async function handleGetItems(request, env, corsHeaders, url) {
   if (!userId) return json({ ok: false, error: 'Missing userId' }, 400, corsHeaders);
 
   const includeDone = url.searchParams.get('includeDone') === '1';
-  
-  const dueTimeEnabled = await hasDueTimeColumn(env);
-  let query = dueTimeEnabled
-    ? 'SELECT id, user_id, kind, title, due_date, due_time, status, notes, source, created_at FROM planner_items WHERE user_id = ?1'
-    : "SELECT id, user_id, kind, title, due_date, NULL as due_time, status, notes, source, created_at FROM planner_items WHERE user_id = ?1";
+
+  let query = 'SELECT id, user_id, kind, title, due_date, due_time, status, notes, source, created_at FROM planner_items WHERE user_id = ?1';
   if (!includeDone) {
     query += " AND status = 'open'";
   }
-  query += dueTimeEnabled
-    ? " ORDER BY due_date ASC, COALESCE(due_time, '9999') ASC, id DESC"
-    : " ORDER BY due_date ASC, id DESC";
+  query += " ORDER BY due_date ASC, COALESCE(due_time, '9999') ASC, id DESC";
 
   const result = await env.DB.prepare(query).bind(userId).all();
-  
+
   return json({ ok: true, items: result.results || [] }, 200, corsHeaders);
 }
 
@@ -139,27 +125,17 @@ async function handleSaveItem(request, env, corsHeaders, url) {
     return json({ ok: false, error: 'Missing userId or title' }, 400, corsHeaders);
   }
 
-  const dueTimeEnabled = await hasDueTimeColumn(env);
-
   if (itemId) {
     // Update existing
     await env.DB.prepare(
-      dueTimeEnabled
-        ? `UPDATE planner_items SET title = ?1, due_date = ?2, due_time = ?3, status = ?4, notes = ?5, source = ?6, updated_at = datetime('now') WHERE id = ?7 AND user_id = ?8`
-        : `UPDATE planner_items SET title = ?1, due_date = ?2, status = ?3, notes = ?4, source = ?5, updated_at = datetime('now') WHERE id = ?6 AND user_id = ?7`
-    ).bind(...(dueTimeEnabled
-      ? [title, dueDate, dueTime, status, notes, source, itemId, userId]
-      : [title, dueDate, status, notes, source, itemId, userId])).run();
+      `UPDATE planner_items SET title = ?1, due_date = ?2, due_time = ?3, status = ?4, notes = ?5, source = ?6, updated_at = datetime('now') WHERE id = ?7 AND user_id = ?8`
+    ).bind(title, dueDate, dueTime, status, notes, source, itemId, userId).run();
     return json({ ok: true, id: itemId }, 200, corsHeaders);
   } else {
     // Create new
     const result = await env.DB.prepare(
-      dueTimeEnabled
-        ? `INSERT INTO planner_items (user_id, kind, title, due_date, due_time, status, notes, source) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)`
-        : `INSERT INTO planner_items (user_id, kind, title, due_date, status, notes, source) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)`
-    ).bind(...(dueTimeEnabled
-      ? [userId, kind, title, dueDate, dueTime, status, notes, source]
-      : [userId, kind, title, dueDate, status, notes, source])).run();
+      `INSERT INTO planner_items (user_id, kind, title, due_date, due_time, status, notes, source) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)`
+    ).bind(userId, kind, title, dueDate, dueTime, status, notes, source).run();
     const id = result.meta?.last_row_id;
     return json({ ok: true, id: Number(id) }, 200, corsHeaders);
   }
