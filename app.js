@@ -105,11 +105,12 @@ function promptModal({ title = 'Edit', message = '', initialValue = '', saveLabe
   return new Promise((resolve) => {
     const previousType = modalInput.type;
     const previousTime = modalTime.value;
+    const isPassword = inputType === 'password';
     modalTitle.textContent = title;
     modalMessage.textContent = message;
     modalInput.type = inputType;
     modalInput.value = initialValue || '';
-    modalTime.style.display = inputType === 'password' ? 'none' : 'block';
+    modalTime.style.display = isPassword ? 'none' : 'block';
     modalTime.value = '';
     modalNotes.style.display = 'none';
     modalSave.textContent = saveLabel;
@@ -129,7 +130,7 @@ function promptModal({ title = 'Edit', message = '', initialValue = '', saveLabe
       modalInput.removeEventListener('keydown', onKey);
       resolve(val);
     };
-    const onSave = () => close(modalInput.value);
+    const onSave = () => close(isPassword ? modalInput.value : { title: modalInput.value, dueTime: formatMilitaryTime(modalTime.value) || null });
     const onCancel = () => close(null);
     const onBackdrop = (e) => { if (e.target === modalBackdrop) close(null); };
     const onKey = (e) => {
