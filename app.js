@@ -554,20 +554,21 @@ calendarGrid.addEventListener('dragend', (e) => {
 
 async function openCreateTaskModalForDay(ymd) {
   if (!ymd) return;
-  const titleRaw = await promptModal({
+  const next = await promptModal({
     title: 'New Task',
     message: `Create a task for ${ymd}:`,
     initialValue: '',
     saveLabel: 'Create'
   });
-  if (titleRaw == null) return;
-  const title = titleRaw.trim();
+  if (next == null) return;
+  const title = String(typeof next === 'string' ? next : next.title || '').trim();
+  const dueTime = formatMilitaryTime(typeof next === 'object' ? next.dueTime : '') || null;
   if (!title) return;
   try {
     setSync('Syncing…');
     await api('/api/planner/items', {
       method: 'POST',
-      body: JSON.stringify({ userId: USER_ID, kind: 'task', title, dueDate: ymd, dueTime: null, source: 'lookahead-app' })
+      body: JSON.stringify({ userId: USER_ID, kind: 'task', title, dueDate: ymd, dueTime, source: 'lookahead-app' })
     });
     const scrollPos = { grid: document.querySelector(".rolling-grid")?.scrollTop || 0, window: window.scrollY };// debug removed
     await loadTasks();
