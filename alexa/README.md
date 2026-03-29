@@ -47,6 +47,8 @@ Right now it reliably supports:
 - `today`
 - `tomorrow`
 - `next monday` / `next tuesday` / etc.
+- `in 2 weeks`
+- month/day phrases like `April 4`
 - exact `YYYY-MM-DD`
 
 If Alexa doesn't pass a recognizable date phrase, it falls back to **today**.

@@ -37,6 +37,17 @@ function localDateString(date = new Date()) {
   return `${y}-${m}-${d}`;
 }
 
+function humanDateString(ymd) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(ymd || ''))) return String(ymd || '');
+  const [y, m, d] = ymd.split('-').map(Number);
+  const date = new Date(y, m - 1, d, 12, 0, 0, 0);
+  return new Intl.DateTimeFormat('en-US', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric'
+  }).format(date);
+}
+
 function nextWeekday(targetDay, from = new Date()) {
   const date = new Date(from.getFullYear(), from.getMonth(), from.getDate(), 12, 0, 0, 0);
   const currentDay = date.getDay();
@@ -57,6 +68,13 @@ function parseDatePhrase(phrase) {
     return localDateString(d);
   }
 
+  const inWeeksMatch = raw.match(/^in\s+(\d+)\s+weeks?$/);
+  if (inWeeksMatch) {
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12, 0, 0, 0);
+    d.setDate(d.getDate() + (Number(inWeeksMatch[1]) * 7));
+    return localDateString(d);
+  }
+
   const weekdays = {
     sunday: 0,
     monday: 1,
@@ -73,6 +91,23 @@ function parseDatePhrase(phrase) {
   }
 
   if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+
+  const monthDayMatch = raw.match(/^(january|february|march|april|may|june|july|august|september|october|november|december)\s+(\d{1,2})$/);
+  if (monthDayMatch) {
+    const months = {
+      january: 0, february: 1, march: 2, april: 3, may: 4, june: 5,
+      july: 6, august: 7, september: 8, october: 9, november: 10, december: 11
+    };
+    const targetMonth = months[monthDayMatch[1]];
+    const targetDay = Number(monthDayMatch[2]);
+    let year = now.getFullYear();
+    let candidate = new Date(year, targetMonth, targetDay, 12, 0, 0, 0);
+    if (candidate < new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12, 0, 0, 0)) {
+      year += 1;
+      candidate = new Date(year, targetMonth, targetDay, 12, 0, 0, 0);
+    }
+    return localDateString(candidate);
+  }
 
   return null;
 }
@@ -141,7 +176,7 @@ async function handleAddTaskIntent(intent) {
     kind: 'task'
   });
 
-  return response(`Okay, I added ${title} for ${finalDate}.`);
+  return response(`Okay, I added ${title} for ${humanDateString(finalDate)}.`);
 }
 
 async function handleGetTodayIntent() {
