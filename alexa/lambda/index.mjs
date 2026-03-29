@@ -17,7 +17,17 @@ function getIntent(req) {
 }
 
 function getSlot(intent, name) {
-  return intent?.slots?.[name]?.value || '';
+  const slot = intent?.slots?.[name];
+  if (!slot) return '';
+  if (slot.value) return slot.value;
+  if (Array.isArray(slot.resolutions?.resolutionsPerAuthority)) {
+    const resolved = slot.resolutions.resolutionsPerAuthority
+      .flatMap((entry) => entry?.values || [])
+      .map((entry) => entry?.value?.name)
+      .find(Boolean);
+    if (resolved) return resolved;
+  }
+  return '';
 }
 
 function localDateString(date = new Date()) {
@@ -110,7 +120,11 @@ async function callWorker(path, payload) {
 }
 
 async function handleAddTaskIntent(intent) {
-  const taskPhrase = String(getSlot(intent, 'taskPhrase')).trim();
+  const taskPhrase = String(
+    getSlot(intent, 'taskPhrase')
+    || getSlot(intent, 'title')
+    || getSlot(intent, 'query')
+  ).trim();
   const { title, dueDate } = parseTaskPhrase(taskPhrase);
 
   if (!title) {
