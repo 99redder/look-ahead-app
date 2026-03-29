@@ -503,7 +503,6 @@
       modalInput.value = initialValue;
       modalNotes.value = '';
       modalTime.value = '';
-      modalTime.value = '';
       if (isEdit && taskId) {
         modalNotes.value = localStorage.getItem('lookahead:task-notes:' + taskId) || '';
         const task = tasks.find(t => String(t.id) === String(taskId));
@@ -520,6 +519,7 @@
       modal.classList.remove('active');
       modalInput.value = '';
       modalNotes.value = '';
+      modalTime.value = '';
     }
     
     async function addTask(title, notes, dueTime) {
