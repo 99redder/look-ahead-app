@@ -81,8 +81,12 @@ function json(payload, status = 200, headers = {}) {
 }
 
 async function hasDueTimeColumn(env) {
-  const result = await env.DB.prepare(`PRAGMA table_info(planner_items)`).all();
-  return (result.results || []).some((row) => String(row.name || '').toLowerCase() === 'due_time');
+  try {
+    const result = await env.DB.prepare(`PRAGMA table_info(planner_items)`).all();
+    return (result.results || []).some((row) => String(row.name || '').toLowerCase() === 'due_time');
+  } catch {
+    return false;
+  }
 }
 
 // GET /api/planner/items?userId=xxx&includeDone=1
