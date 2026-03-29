@@ -15,6 +15,7 @@ const modalCancel = document.getElementById('modal-cancel');
 const modalSave = document.getElementById('modal-save');
 const modalDelete = document.getElementById('modal-delete');
 const modalNotes = document.getElementById('modal-notes');
+const modalTime = document.getElementById('modal-time');
 
 const deleteModal = document.getElementById('delete-modal');
 const deleteModalConfirm = document.getElementById('delete-modal-confirm');
@@ -103,10 +104,13 @@ function setSync(text, ok = true) {
 function promptModal({ title = 'Edit', message = '', initialValue = '', saveLabel = 'Save', inputType = 'text' }) {
   return new Promise((resolve) => {
     const previousType = modalInput.type;
+    const previousTime = modalTime.value;
     modalTitle.textContent = title;
     modalMessage.textContent = message;
     modalInput.type = inputType;
     modalInput.value = initialValue || '';
+    modalTime.style.display = inputType === 'password' ? 'none' : 'block';
+    modalTime.value = '';
     modalNotes.style.display = 'none';
     modalSave.textContent = saveLabel;
     modalBackdrop.style.display = 'grid';
@@ -117,6 +121,8 @@ function promptModal({ title = 'Edit', message = '', initialValue = '', saveLabe
       modalBackdrop.style.display = 'none';
       modalBackdrop.setAttribute('aria-hidden', 'true');
       modalInput.type = previousType;
+      modalTime.style.display = 'block';
+      modalTime.value = previousTime;
       modalSave.removeEventListener('click', onSave);
       modalCancel.removeEventListener('click', onCancel);
       modalBackdrop.removeEventListener('click', onBackdrop);
@@ -160,6 +166,8 @@ function taskEditorModal(task) {
     modalMessage.textContent = 'Update title and private notes.';
     modalInput.value = task?.title || '';
     modalNotes.style.display = 'block';
+    modalTime.style.display = 'block';
+    modalTime.value = formatMilitaryTime(task?.due_time);
     modalNotes.value = getTaskNotes(task.id);
     modalSave.textContent = 'Save';
     modalDelete.style.display = 'block';
@@ -171,6 +179,7 @@ function taskEditorModal(task) {
       modalBackdrop.style.display = 'none';
       modalBackdrop.setAttribute('aria-hidden', 'true');
       modalNotes.style.display = 'none';
+      modalTime.value = '';
       modalDelete.style.display = 'none';
       modalSave.removeEventListener('click', onSave);
       modalCancel.removeEventListener('click', onCancel);
@@ -180,7 +189,7 @@ function taskEditorModal(task) {
       modalNotes.removeEventListener('keydown', onNotesKey);
       resolve(val);
     };
-    const onSave = () => close({ title: modalInput.value, notes: modalNotes.value });
+    const onSave = () => close({ title: modalInput.value, notes: modalNotes.value, dueTime: formatMilitaryTime(modalTime.value) || null });
     const onCancel = () => close(null);
     const onDelete = () => close({ delete: true });
     const onBackdrop = (e) => { if (e.target === modalBackdrop) close(null); };
@@ -504,7 +513,7 @@ calendarGrid.addEventListener('click', async (e) => {
           kind: existing.kind || 'task',
           title,
           dueDate: existing.due_date || null,
-          dueTime: existing.due_time || null,
+          dueTime: next.dueTime ?? existing.due_time ?? null,
           status: existing.status || 'open',
           source: existing.source || 'lookahead-app'
         })
