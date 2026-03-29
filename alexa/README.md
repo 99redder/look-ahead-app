@@ -36,7 +36,10 @@ Set these in AWS Lambda:
 
 ### Examples
 - "Alexa, ask Look Ahead to add dentist appointment tomorrow"
+- "Alexa, ask Look Ahead to add buy milk for next Tuesday"
 - "Alexa, ask Look Ahead what is on my calendar today"
+
+Alexa's model now uses a **single freeform slot** for add-task requests, and the Lambda parses the title/date phrase.
 
 ## Important limitation
 The included date parser is intentionally simple so it doesn't disturb the current app.

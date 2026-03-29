@@ -67,6 +67,27 @@ function parseDatePhrase(phrase) {
   return null;
 }
 
+function parseTaskPhrase(taskPhrase) {
+  const raw = String(taskPhrase || '').trim();
+  if (!raw) return { title: '', dueDate: null };
+
+  const patterns = [
+    /^(.*?)\s+for\s+(today|tomorrow|next\s+(?:sunday|monday|tuesday|wednesday|thursday|friday|saturday)|\d{4}-\d{2}-\d{2})$/i,
+    /^(.*?)\s+(today|tomorrow|next\s+(?:sunday|monday|tuesday|wednesday|thursday|friday|saturday)|\d{4}-\d{2}-\d{2})$/i
+  ];
+
+  for (const pattern of patterns) {
+    const match = raw.match(pattern);
+    if (match) {
+      const title = String(match[1] || '').trim();
+      const dueDate = parseDatePhrase(match[2] || '');
+      if (title) return { title, dueDate };
+    }
+  }
+
+  return { title: raw, dueDate: null };
+}
+
 async function callWorker(path, payload) {
   if (!WORKER_BASE || !ALEXA_SECRET) {
     throw new Error('Alexa integration env vars are not configured');
@@ -89,24 +110,24 @@ async function callWorker(path, payload) {
 }
 
 async function handleAddTaskIntent(intent) {
-  const title = String(getSlot(intent, 'title')).trim();
-  const datePhrase = String(getSlot(intent, 'datePhrase')).trim();
+  const taskPhrase = String(getSlot(intent, 'taskPhrase')).trim();
+  const { title, dueDate } = parseTaskPhrase(taskPhrase);
 
   if (!title) {
     return response('I did not catch the task title. Please try again.');
   }
 
-  const dueDate = parseDatePhrase(datePhrase) || localDateString();
+  const finalDate = dueDate || localDateString();
 
   await callWorker('/api/integrations/alexa/add', {
     userId: DEFAULT_USER_ID,
     title,
-    dueDate,
+    dueDate: finalDate,
     notes: '',
     kind: 'task'
   });
 
-  return response(`Okay, I added ${title} for ${dueDate}.`);
+  return response(`Okay, I added ${title} for ${finalDate}.`);
 }
 
 async function handleGetTodayIntent() {

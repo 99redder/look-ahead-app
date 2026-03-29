@@ -7,20 +7,15 @@
           "name": "AddTaskIntent",
           "slots": [
             {
-              "name": "title",
-              "type": "AMAZON.SearchQuery"
-            },
-            {
-              "name": "datePhrase",
+              "name": "taskPhrase",
               "type": "AMAZON.SearchQuery"
             }
           ],
           "samples": [
-            "add {title} {datePhrase}",
-            "create task {title} {datePhrase}",
-            "remember {title} {datePhrase}",
-            "add {title} for {datePhrase}",
-            "add task {title} for {datePhrase}"
+            "add {taskPhrase}",
+            "create task {taskPhrase}",
+            "remember {taskPhrase}",
+            "add task {taskPhrase}"
           ]
         },
         {
