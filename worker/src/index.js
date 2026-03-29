@@ -14,7 +14,7 @@ export default {
       const corsHeaders = {
         'Access-Control-Allow-Origin': allowAll ? '*' : (originAllowed ? origin : allowedOrigins[0] || ''),
         'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, X-App-Password, Authorization',
+        'Access-Control-Allow-Headers': 'Content-Type, X-App-Password',
         'Vary': 'Origin'
       };
 
@@ -27,19 +27,6 @@ export default {
       }
 
       const url = new URL(request.url);
-
-      // Alexa integration endpoints use a dedicated bearer token so existing app auth is untouched.
-      if (url.pathname === '/api/integrations/alexa/add' && request.method === 'POST') {
-        const authResult = requireAlexaAuth(request, env, corsHeaders);
-        if (authResult) return authResult;
-        return handleAlexaAdd(request, env, corsHeaders);
-      }
-
-      if (url.pathname === '/api/integrations/alexa/today' && request.method === 'POST') {
-        const authResult = requireAlexaAuth(request, env, corsHeaders);
-        if (authResult) return authResult;
-        return handleAlexaToday(request, env, corsHeaders);
-      }
 
       const appPassword = (env.APP_PASSWORD || '').trim();
       if (!appPassword) {
@@ -91,78 +78,6 @@ function json(payload, status = 200, headers = {}) {
     status,
     headers: { 'Content-Type': 'application/json', ...headers }
   });
-}
-
-function requireAlexaAuth(request, env, corsHeaders) {
-  const expected = (env.ALEXA_SECRET || '').trim();
-  if (!expected) {
-    return json({ ok: false, error: 'Alexa integration not configured' }, 503, corsHeaders);
-  }
-
-  const auth = request.headers.get('Authorization') || '';
-  const token = auth.startsWith('Bearer ') ? auth.slice(7).trim() : '';
-  if (!token || token !== expected) {
-    return json({ ok: false, error: 'Unauthorized' }, 401, corsHeaders);
-  }
-
-  return null;
-}
-
-async function handleAlexaAdd(request, env, corsHeaders) {
-  if (!env.DB) return json({ ok: false, error: 'DB not bound' }, 500, corsHeaders);
-
-  let data;
-  try {
-    data = await request.json();
-  } catch {
-    return json({ ok: false, error: 'Invalid JSON' }, 400, corsHeaders);
-  }
-
-  const userId = String(data.userId || 'chris').trim();
-  const title = String(data.title || '').trim();
-  const dueDate = data.dueDate ? String(data.dueDate).trim() : null;
-  const notes = data.notes ? String(data.notes).trim() : null;
-  const kind = String(data.kind || 'task').trim() || 'task';
-  const status = 'open';
-  const source = 'alexa';
-
-  if (!userId || !title) {
-    return json({ ok: false, error: 'Missing userId or title' }, 400, corsHeaders);
-  }
-
-  if (dueDate && !/^\d{4}-\d{2}-\d{2}$/.test(dueDate)) {
-    return json({ ok: false, error: 'dueDate must be YYYY-MM-DD' }, 400, corsHeaders);
-  }
-
-  const result = await env.DB.prepare(
-    `INSERT INTO planner_items (user_id, kind, title, due_date, status, notes, source) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)`
-  ).bind(userId, kind, title, dueDate, status, notes, source).run();
-
-  return json({ ok: true, id: Number(result.meta?.last_row_id || 0), title, dueDate, source }, 200, corsHeaders);
-}
-
-async function handleAlexaToday(request, env, corsHeaders) {
-  if (!env.DB) return json({ ok: false, error: 'DB not bound' }, 500, corsHeaders);
-
-  let data = {};
-  try {
-    data = await request.json();
-  } catch {
-    data = {};
-  }
-
-  const userId = String(data.userId || 'chris').trim();
-  const date = String(data.date || '').trim() || new Date().toISOString().slice(0, 10);
-
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-    return json({ ok: false, error: 'date must be YYYY-MM-DD' }, 400, corsHeaders);
-  }
-
-  const result = await env.DB.prepare(
-    `SELECT id, title, due_date, status, notes, source FROM planner_items WHERE user_id = ?1 AND due_date = ?2 ORDER BY id DESC`
-  ).bind(userId, date).all();
-
-  return json({ ok: true, date, items: result.results || [] }, 200, corsHeaders);
 }
 
 // GET /api/planner/items?userId=xxx&includeDone=1
