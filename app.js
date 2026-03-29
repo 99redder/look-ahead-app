@@ -504,6 +504,7 @@ calendarGrid.addEventListener('click', async (e) => {
           kind: existing.kind || 'task',
           title,
           dueDate: existing.due_date || null,
+          dueTime: existing.due_time || null,
           status: existing.status || 'open',
           source: existing.source || 'lookahead-app'
         })
@@ -557,7 +558,7 @@ async function openCreateTaskModalForDay(ymd) {
     setSync('Syncing…');
     await api('/api/planner/items', {
       method: 'POST',
-      body: JSON.stringify({ userId: USER_ID, kind: 'task', title, dueDate: ymd, source: 'lookahead-app' })
+      body: JSON.stringify({ userId: USER_ID, kind: 'task', title, dueDate: ymd, dueTime: null, source: 'lookahead-app' })
     });
     const scrollPos = { grid: document.querySelector(".rolling-grid")?.scrollTop || 0, window: window.scrollY };// debug removed
     await loadTasks();
