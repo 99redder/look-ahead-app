@@ -241,6 +241,7 @@
     <div class="modal">
       <h3 id="modal-title">New Task</h3>
       <input type="text" id="modal-input" placeholder="Task title..." />
+      <input type="text" id="modal-time" placeholder="Time (HHMM, e.g. 0800)" maxlength="4" />
       <textarea id="modal-notes" class="modal-notes" rows="4" placeholder="Notes (optional)"></textarea>
       <div class="modal-actions">
         <button class="modal-btn cancel" id="modal-cancel">Cancel</button>
@@ -351,6 +352,7 @@
     const modal = document.getElementById('modal');
     const modalInput = document.getElementById('modal-input');
     const modalNotes = document.getElementById('modal-notes');
+    const modalTime = document.getElementById('modal-time');
     const modalTitle = document.getElementById('modal-title');
     const modalSave = document.getElementById('modal-save');
     const modalCancel = document.getElementById('modal-cancel');
@@ -451,9 +453,27 @@
       }
     }
     
+    function timeSortValue(task) {
+      const raw = String(task?.due_time || '').trim();
+      return /^\d{4}$/.test(raw) ? raw : '9999';
+    }
+
+    function sortTasksByTime(tasksList) {
+      return [...tasksList].sort((a, b) => {
+        const byTime = timeSortValue(a).localeCompare(timeSortValue(b));
+        if (byTime !== 0) return byTime;
+        return String(a.title || '').localeCompare(String(b.title || ''));
+      });
+    }
+
+    function formatMilitaryTime(raw) {
+      const v = String(raw || '').trim();
+      return /^\d{4}$/.test(v) ? v : '';
+    }
+
     function renderTasks() {
       const dateKey = ymd(currentDate);
-      const dayTasks = tasks.filter(t => (t.due_date || '') === dateKey);
+      const dayTasks = sortTasksByTime(tasks.filter(t => (t.due_date || '') === dateKey));
       
       if (dayTasks.length === 0) {
         taskList.innerHTML = '<div class="empty-state">No tasks for this day<br><br>Tap + to add one</div>';
@@ -464,7 +484,7 @@
         const hasNotes = localStorage.getItem('lookahead:task-notes:' + t.id);
         return `
         <div class="task-item ${t.status === 'done' ? 'done' : ''}" data-id="${t.id}" data-action="edit">
-          <div class="task-title" data-action="edit">${escapeHtml(t.title)}${hasNotes ? ' <span style="opacity:0.5;">📝</span>' : ''}</div>
+          <div class="task-title" data-action="edit">${formatMilitaryTime(t.due_time) ? `<span style=\"color:var(--line);font-weight:700;\">${escapeHtml(formatMilitaryTime(t.due_time))}</span> · ` : ''}${escapeHtml(t.title)}${hasNotes ? ' <span style=\"opacity:0.5;\">📝</span>' : ''}</div>
           <div class="task-actions">
             <button class="task-btn done-btn" data-action="toggle">${t.status === 'done' ? '↩' : '✓'}</button>
             
@@ -482,8 +502,12 @@
       modalTitle.textContent = title;
       modalInput.value = initialValue;
       modalNotes.value = '';
+      modalTime.value = '';
+      modalTime.value = '';
       if (isEdit && taskId) {
         modalNotes.value = localStorage.getItem('lookahead:task-notes:' + taskId) || '';
+        const task = tasks.find(t => String(t.id) === String(taskId));
+        modalTime.value = formatMilitaryTime(task?.due_time);
       }
       modalSave.textContent = saveLabel;
       modal.classList.add('active');
@@ -498,8 +522,9 @@
       modalNotes.value = '';
     }
     
-    async function addTask(title, notes) {
+    async function addTask(title, notes, dueTime) {
       if (!title.trim()) return;
+      const cleanTime = formatMilitaryTime(dueTime);
       try {
         setSync('Saving...');
         const result = await api('/api/planner/items', {
@@ -509,6 +534,7 @@
             kind: 'task',
             title: title.trim(),
             dueDate: ymd(currentDate),
+            dueTime: cleanTime || null,
             source: 'lookahead-mobile'
           })
         });
@@ -526,8 +552,9 @@
       }
     }
     
-    async function updateTask(id, title, notes) {
+    async function updateTask(id, title, notes, dueTime) {
       if (!title.trim()) return;
+      const cleanTime = formatMilitaryTime(dueTime);
       const existing = tasks.find(t => String(t.id) === String(id));
       if (!existing) return;
       try {
@@ -540,6 +567,7 @@
             kind: existing.kind || 'task',
             title: title.trim(),
             dueDate: existing.due_date || null,
+            dueTime: cleanTime || null,
             status: existing.status || 'open',
             source: existing.source || 'lookahead-mobile'
           })
@@ -634,9 +662,9 @@
     modalSave.addEventListener('click', () => {
       if (authPromptActive) return;
       if (isEditing && editingTaskId) {
-        updateTask(editingTaskId, modalInput.value, modalNotes.value);
+        updateTask(editingTaskId, modalInput.value, modalNotes.value, modalTime.value);
       } else {
-        addTask(modalInput.value, modalNotes.value);
+        addTask(modalInput.value, modalNotes.value, modalTime.value);
       }
     });
     

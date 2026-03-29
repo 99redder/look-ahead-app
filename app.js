@@ -257,6 +257,24 @@ async function loadTasks() {
   render();
 }
 
+function timeSortValue(task) {
+  const raw = String(task?.due_time || '').trim();
+  return /^\d{4}$/.test(raw) ? raw : '9999';
+}
+
+function sortTasksByTime(tasksList) {
+  return [...tasksList].sort((a, b) => {
+    const byTime = timeSortValue(a).localeCompare(timeSortValue(b));
+    if (byTime !== 0) return byTime;
+    return String(a.title || '').localeCompare(String(b.title || ''));
+  });
+}
+
+function formatMilitaryTime(raw) {
+  const v = String(raw || '').trim();
+  return /^\d{4}$/.test(v) ? v : '';
+}
+
 function escapeHtml(v) {
   return String(v || '').replace(/[&<>'"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
@@ -290,25 +308,25 @@ function renderCalendar() {
     const dows = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
     const dowLabels = dows.map(d => `<div class="cal-dow">${d}</div>`).join('');
     
-    // Build the week starting from today
+    // Build the week starting from current cursor week
     let todayCell = '';
     let otherDays = [];
     
     for (let i = 0; i < 7; i++) {
       const d = new Date(startYear, startMonth, startDay + i, 12, 0, 0, 0);
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-      const dayItems = tasks
-        .filter(t => (t.due_date || '') === key)
+      const dayItems = sortTasksByTime(tasks.filter(t => (t.due_date || '') === key))
         .sort((a,b) => (a.status === 'done') - (b.status === 'done'));
-      const html = dayItems.slice(0, 8).map(t => `<div class="cal-item" draggable="true" data-drag-task-id="${t.id}"><span class="cal-item-title">${escapeHtml(t.title)}</span><span class="cal-item-delete" data-delete-id="${t.id}">×</span></div>`).join('');
+      const html = dayItems.slice(0, 8).map(t => `<div class="cal-item" draggable="true" data-drag-task-id="${t.id}"><span class="cal-item-title">${formatMilitaryTime(t.due_time) ? escapeHtml(formatMilitaryTime(t.due_time) + ' ') : ''}${escapeHtml(t.title)}</span><span class="cal-item-delete" data-delete-id="${t.id}">×</span></div>`).join('');
       const more = dayItems.length > 8 ? `<div class="cal-item">+${dayItems.length - 8} more</div>` : '';
       const isToday = key === todayKey;
       
+      const timeline = isToday ? dayItems.map(t => `<div class=\"focus-time-item ${t.status === 'done' ? 'done' : ''}\"><span class=\"focus-time\">${escapeHtml(formatMilitaryTime(t.due_time) || 'UNSET')}</span><span class=\"focus-time-title\">${escapeHtml(t.title)}</span></div>`).join('') || '<div class=\"empty-state\">No tasks for this day</div>' : `${html}${more}`;
       const dayContent = `
         <div class="cal-day ${isToday ? 'today' : ''}" data-date="${key}">
           <div class="cal-day-header">${dows[d.getDay()]}</div>
           <div class="cal-day-num">${d.getDate()}</div>
-          ${html}${more}
+          ${timeline}
         </div>`;
       
       if (isToday) {
@@ -333,10 +351,9 @@ function renderCalendar() {
     for (let i = 0; i < daysToShow; i++) {
       const d = new Date(startYear, startMonth, startDay + i, 12, 0, 0, 0);
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-      const dayItems = tasks
-        .filter(t => (t.due_date || '') === key)
+      const dayItems = sortTasksByTime(tasks.filter(t => (t.due_date || '') === key))
         .sort((a,b) => (a.status === 'done') - (b.status === 'done'));
-      const html = dayItems.slice(0, 4).map(t => `<div class="cal-item" draggable="true" data-drag-task-id="${t.id}"><span class="cal-item-title">${escapeHtml(t.title)}</span><span class="cal-item-delete" data-delete-id="${t.id}">×</span></div>`).join('');
+      const html = dayItems.slice(0, 4).map(t => `<div class="cal-item" draggable="true" data-drag-task-id="${t.id}"><span class="cal-item-title">${formatMilitaryTime(t.due_time) ? escapeHtml(formatMilitaryTime(t.due_time) + ' ') : ''}${escapeHtml(t.title)}</span><span class="cal-item-delete" data-delete-id="${t.id}">×</span></div>`).join('');
       const more = dayItems.length > 4 ? `<div class="cal-item">+${dayItems.length - 4} more</div>` : '';
       const monthStarts = d.getDate() === 1;
       const monthBadge = monthStarts
@@ -351,12 +368,12 @@ function renderCalendar() {
 
 function renderList() {
   if (!taskList) return;
-  const sorted = [...tasks].sort((a, b) => (a.due_date || '').localeCompare(b.due_date || ''));
+  const sorted = [...tasks].sort((a, b) => ((a.due_date || '').localeCompare(b.due_date || '') || timeSortValue(a).localeCompare(timeSortValue(b)));
   taskList.innerHTML = sorted.map(t => `
     <div class="item ${t.status === 'done' ? 'done' : ''}" draggable="true" data-drag-task-id="${t.id}">
       <div>
         <div class="title">${escapeHtml(t.title)}</div>
-        <div>${escapeHtml(t.due_date || 'No date')}</div>
+        <div>${escapeHtml(t.due_date || 'No date')}${formatMilitaryTime(t.due_time) ? ' · ' + escapeHtml(formatMilitaryTime(t.due_time)) : ''}</div>
       </div>
       <div class="actions">
         <input type="date" value="${escapeHtml(t.due_date || '')}" data-id="${t.id}" data-act="date" style="width:140px;padding:6px;" />

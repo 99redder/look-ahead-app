@@ -89,11 +89,11 @@ async function handleGetItems(request, env, corsHeaders, url) {
 
   const includeDone = url.searchParams.get('includeDone') === '1';
   
-  let query = 'SELECT id, user_id, kind, title, due_date, status, notes, source, created_at FROM planner_items WHERE user_id = ?1';
+  let query = 'SELECT id, user_id, kind, title, due_date, due_time, status, notes, source, created_at FROM planner_items WHERE user_id = ?1';
   if (!includeDone) {
     query += " AND status = 'open'";
   }
-  query += ' ORDER BY due_date ASC, id DESC';
+  query += " ORDER BY due_date ASC, COALESCE(due_time, '9999') ASC, id DESC";
 
   const result = await env.DB.prepare(query).bind(userId).all();
   
@@ -116,6 +116,7 @@ async function handleSaveItem(request, env, corsHeaders, url) {
   const kind = data.kind || 'task';
   const dueDate = data.dueDate || null;
   const status = data.status || 'open';
+  const dueTime = data.dueTime || null;
   const notes = data.notes || null;
   const source = data.source || 'lookahead';
   const itemId = data.id;
@@ -127,14 +128,14 @@ async function handleSaveItem(request, env, corsHeaders, url) {
   if (itemId) {
     // Update existing
     await env.DB.prepare(
-      `UPDATE planner_items SET title = ?1, due_date = ?2, status = ?3, notes = ?4, source = ?5, updated_at = datetime('now') WHERE id = ?6 AND user_id = ?7`
-    ).bind(title, dueDate, status, notes, source, itemId, userId).run();
+      `UPDATE planner_items SET title = ?1, due_date = ?2, due_time = ?3, status = ?4, notes = ?5, source = ?6, updated_at = datetime('now') WHERE id = ?7 AND user_id = ?8`
+    ).bind(title, dueDate, dueTime, status, notes, source, itemId, userId).run();
     return json({ ok: true, id: itemId }, 200, corsHeaders);
   } else {
     // Create new
     const result = await env.DB.prepare(
-      `INSERT INTO planner_items (user_id, kind, title, due_date, status, notes, source) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)`
-    ).bind(userId, kind, title, dueDate, status, notes, source).run();
+      `INSERT INTO planner_items (user_id, kind, title, due_date, due_time, status, notes, source) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)`
+    ).bind(userId, kind, title, dueDate, dueTime, status, notes, source).run();
     const id = result.meta?.last_row_id;
     return json({ ok: true, id: Number(id) }, 200, corsHeaders);
   }

@@ -96,3 +96,7 @@ button:hover { border-color: var(--pink); color: var(--pink); }
   color: var(--line);
   font-weight: 700;
 }
+.focus-time-item{display:grid;grid-template-columns:72px 1fr;gap:8px;padding:6px 8px;border:1px solid #214526;border-radius:6px;background:#0b120d;color:var(--text)}
+.focus-time-item.done{opacity:.6}
+.focus-time{color:var(--line);font-weight:700}
+.focus-time-title{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
