@@ -112,6 +112,7 @@ function promptModal({ title = 'Edit', message = '', initialValue = '', saveLabe
     modalTime.style.display = isPassword ? 'none' : 'block';
     modalTime.value = '';
     modalNotes.style.display = 'none';
+    modalDelete.style.display = 'none';
     modalSave.textContent = saveLabel;
     modalBackdrop.style.display = 'grid';
     modalBackdrop.setAttribute('aria-hidden', 'false');
@@ -163,7 +164,7 @@ function setTaskNotes(taskId, notes) {
 function taskEditorModal(task) {
   return new Promise((resolve) => {
     modalTitle.textContent = 'Edit Task';
-    modalMessage.textContent = 'Update title and private notes.';
+    modalMessage.textContent = 'Update title, time, and private notes.';
     modalInput.value = task?.title || '';
     modalNotes.style.display = 'block';
     modalTime.style.display = 'block';
@@ -189,7 +190,11 @@ function taskEditorModal(task) {
       modalNotes.removeEventListener('keydown', onNotesKey);
       resolve(val);
     };
-    const onSave = () => close({ title: modalInput.value, notes: modalNotes.value, dueTime: formatMilitaryTime(modalTime.value) || null });
+    const onSave = async () => {
+      const title = (modalInput.value || '').trim();
+      if (!title) return;
+      close({ title, notes: modalNotes.value, dueTime: formatMilitaryTime(modalTime.value) || null });
+    };
     const onCancel = () => close(null);
     const onDelete = () => close({ delete: true });
     const onBackdrop = (e) => { if (e.target === modalBackdrop) close(null); };
