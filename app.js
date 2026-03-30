@@ -367,8 +367,8 @@ function renderCalendar() {
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
       const dayItems = sortTasksByTime(tasks.filter(t => (t.due_date || '') === key))
         .sort((a,b) => (a.status === 'done') - (b.status === 'done'));
-      const html = dayItems.slice(0, 4).map(t => `<div class="cal-item" draggable="true" data-drag-task-id="${t.id}"><span class="cal-item-title">${formatMilitaryTime(t.due_time) ? escapeHtml(formatMilitaryTime(t.due_time) + ' ') : ''}${escapeHtml(t.title)}</span><span class="cal-item-delete" data-delete-id="${t.id}">×</span></div>`).join('');
-      const more = dayItems.length > 4 ? `<div class="cal-item">+${dayItems.length - 4} more</div>` : '';
+      const html = dayItems.slice(0, 8).map(t => `<div class="cal-item" draggable="true" data-drag-task-id="${t.id}"><span class="cal-item-title">${formatMilitaryTime(t.due_time) ? escapeHtml(formatMilitaryTime(t.due_time) + ' ') : ''}${escapeHtml(t.title)}</span><span class="cal-item-delete" data-delete-id="${t.id}">×</span></div>`).join('');
+      const more = dayItems.length > 8 ? `<div class="cal-item">+${dayItems.length - 8} more</div>` : '';
       const monthStarts = d.getDate() === 1;
       const monthBadge = monthStarts
         ? `<div class="cal-month-badge">${new Intl.DateTimeFormat('en-US', { month: 'short' }).format(d)}</div>`
