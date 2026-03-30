@@ -303,7 +303,7 @@ function renderCalendar() {
   const startMonth = start.getMonth();
   const startDay = start.getDate();
 
-  const daysToShow = focusMode ? 7 : 56;
+  const daysToShow = focusMode ? 7 : 28;
 
   // Format date explicitly using local time
   const dateFormatter = new Intl.DateTimeFormat('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
