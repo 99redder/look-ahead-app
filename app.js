@@ -6,11 +6,11 @@ const API_BASES = [
 const USER_ID = 'chris';
 const CATEGORY_KIND = 'category';
 const DEFAULT_CATEGORY_ID = 'uncategorized';
-const DEFAULT_CATEGORY_COLOR = '#b6ffac';
+const DEFAULT_CATEGORY_COLOR = '#39ff14';
 const CATEGORY_COLORS = [
-  '#b6ffac', '#7dff63', '#39ff14', '#00f5d4',
-  '#7bdff2', '#6fa8ff', '#b794ff', '#ff4fd8',
-  '#ff8fb3', '#ffb86b', '#ffe66d', '#c3f73a'
+  '#39ff14', '#00f5d4', '#00e5ff', '#38b6ff',
+  '#6a5cff', '#b517ff', '#ff2bd6', '#ff4d6d',
+  '#ff6b00', '#ff9f1c', '#ffd60a', '#c6ff00'
 ];
 
 const app = document.getElementById('app');
