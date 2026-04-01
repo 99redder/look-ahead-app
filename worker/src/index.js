@@ -89,7 +89,7 @@ async function handleGetItems(request, env, corsHeaders, url) {
 
   const includeDone = url.searchParams.get('includeDone') === '1';
 
-  let query = 'SELECT id, user_id, kind, title, due_date, due_time, status, notes, source, created_at FROM planner_items WHERE user_id = ?1';
+  let query = 'SELECT id, user_id, kind, title, due_date, due_time, status, notes, source, category_id, category_name, category_color, created_at FROM planner_items WHERE user_id = ?1';
   if (!includeDone) {
     query += " AND status = 'open'";
   }
@@ -119,6 +119,9 @@ async function handleSaveItem(request, env, corsHeaders, url) {
   const dueTime = data.dueTime || null;
   const notes = data.notes || null;
   const source = data.source || 'lookahead';
+  const categoryId = data.categoryId || null;
+  const categoryName = data.categoryName || null;
+  const categoryColor = data.categoryColor || null;
   const itemId = data.id;
 
   if (!userId || !title) {
@@ -128,14 +131,14 @@ async function handleSaveItem(request, env, corsHeaders, url) {
   if (itemId) {
     // Update existing
     await env.DB.prepare(
-      `UPDATE planner_items SET title = ?1, due_date = ?2, due_time = ?3, status = ?4, notes = ?5, source = ?6, updated_at = datetime('now') WHERE id = ?7 AND user_id = ?8`
-    ).bind(title, dueDate, dueTime, status, notes, source, itemId, userId).run();
+      `UPDATE planner_items SET title = ?1, due_date = ?2, due_time = ?3, status = ?4, notes = ?5, source = ?6, category_id = ?7, category_name = ?8, category_color = ?9, updated_at = datetime('now') WHERE id = ?10 AND user_id = ?11`
+    ).bind(title, dueDate, dueTime, status, notes, source, categoryId, categoryName, categoryColor, itemId, userId).run();
     return json({ ok: true, id: itemId }, 200, corsHeaders);
   } else {
     // Create new
     const result = await env.DB.prepare(
-      `INSERT INTO planner_items (user_id, kind, title, due_date, due_time, status, notes, source) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)`
-    ).bind(userId, kind, title, dueDate, dueTime, status, notes, source).run();
+      `INSERT INTO planner_items (user_id, kind, title, due_date, due_time, status, notes, source, category_id, category_name, category_color) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)`
+    ).bind(userId, kind, title, dueDate, dueTime, status, notes, source, categoryId, categoryName, categoryColor).run();
     const id = result.meta?.last_row_id;
     return json({ ok: true, id: Number(id) }, 200, corsHeaders);
   }
