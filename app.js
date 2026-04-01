@@ -548,17 +548,16 @@ function categoryMeta(categoryId) {
 async function saveCategory(category) {
   const name = String(category?.name || '').trim();
   if (!name) throw new Error('Category name is required');
-  const id = category?.id || `category:${categoryIdForName(name, category?.categoryId)}`;
-  const categoryId = categoryIdForName(name, String(id).replace(/^category:/, ''));
+  const id = category?.id || '';
+  const categoryId = categoryIdForName(name, String(id).replace(/^category:/, '') || category?.categoryId);
   await api('/api/planner/items', {
     method: 'POST',
     body: JSON.stringify({
-      id,
+      ...(id ? { id } : {}),
       userId: USER_ID,
       kind: CATEGORY_KIND,
       title: name,
-      name,
-      color: normalizeHexColor(category?.color),
+      notes: normalizeHexColor(category?.color),
       categoryId,
       dueDate: null,
       dueTime: null,
