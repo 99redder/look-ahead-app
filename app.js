@@ -7,6 +7,11 @@ const USER_ID = 'chris';
 const CATEGORY_KIND = 'category';
 const DEFAULT_CATEGORY_ID = 'uncategorized';
 const DEFAULT_CATEGORY_COLOR = '#b6ffac';
+const CATEGORY_COLORS = [
+  '#b6ffac', '#7dff63', '#39ff14', '#00f5d4',
+  '#7bdff2', '#6fa8ff', '#b794ff', '#ff4fd8',
+  '#ff8fb3', '#ffb86b', '#ffe66d', '#c3f73a'
+];
 
 const app = document.getElementById('app');
 const syncPill = document.getElementById('sync-pill');
@@ -20,10 +25,26 @@ const modalDelete = document.getElementById('modal-delete');
 const modalNotes = document.getElementById('modal-notes');
 const modalTime = document.getElementById('modal-time');
 const modalCategory = document.getElementById('modal-category');
+const modalColorWrap = document.getElementById('modal-color-wrap');
+const modalColorPalette = document.getElementById('modal-color-palette');
 
 const deleteModal = document.getElementById('delete-modal');
 const deleteModalConfirm = document.getElementById('delete-modal-confirm');
 const deleteModalCancel = document.getElementById('delete-modal-cancel');
+
+const categoryModal = document.getElementById('category-modal');
+const categoryModalTitle = document.getElementById('category-modal-title');
+const categoryModalMessage = document.getElementById('category-modal-message');
+const categoryModalInput = document.getElementById('category-modal-input');
+const categoryModalPalette = document.getElementById('category-modal-palette');
+const categoryModalSave = document.getElementById('category-modal-save');
+const categoryModalCancel = document.getElementById('category-modal-cancel');
+const categoryModalDelete = document.getElementById('category-modal-delete');
+
+const categoryDeleteModal = document.getElementById('category-delete-modal');
+const categoryDeleteModalMessage = document.getElementById('category-delete-modal-message');
+const categoryDeleteModalConfirm = document.getElementById('category-delete-modal-confirm');
+const categoryDeleteModalCancel = document.getElementById('category-delete-modal-cancel');
 
 const taskList = document.getElementById('task-list');
 const calendarGrid = document.getElementById('calendar-grid');
@@ -162,6 +183,33 @@ function normalizeHexColor(value, fallback = DEFAULT_CATEGORY_COLOR) {
   return /^#[0-9a-fA-F]{6}$/.test(v) ? v.toLowerCase() : fallback;
 }
 
+function buildColorPaletteMarkup(selectedColor = DEFAULT_CATEGORY_COLOR) {
+  const normalized = normalizeHexColor(selectedColor, DEFAULT_CATEGORY_COLOR);
+  return CATEGORY_COLORS.map((color) => {
+    const active = normalizeHexColor(color) === normalized ? ' active' : '';
+    return `<button class="color-swatch${active}" type="button" data-color="${escapeHtml(color)}" style="--swatch:${escapeHtml(color)};" aria-label="Select ${escapeHtml(color)}"></button>`;
+  }).join('');
+}
+
+function wirePaletteSelection(container, selectedColor = DEFAULT_CATEGORY_COLOR) {
+  if (!container) return { getValue: () => normalizeHexColor(selectedColor) };
+  let current = normalizeHexColor(selectedColor, DEFAULT_CATEGORY_COLOR);
+  container.innerHTML = buildColorPaletteMarkup(current);
+  const onClick = (e) => {
+    const swatch = e.target.closest('[data-color]');
+    if (!swatch) return;
+    current = normalizeHexColor(swatch.getAttribute('data-color'), DEFAULT_CATEGORY_COLOR);
+    container.querySelectorAll('[data-color]').forEach((node) => {
+      node.classList.toggle('active', node === swatch);
+    });
+  };
+  container.addEventListener('click', onClick);
+  return {
+    getValue: () => current,
+    destroy: () => container.removeEventListener('click', onClick)
+  };
+}
+
 function categoryIdForName(name, existingId = '') {
   if (existingId) return existingId;
   let base = slugifyCategoryName(name);
@@ -275,7 +323,7 @@ function fillCategoryOptions(selectedId = DEFAULT_CATEGORY_ID) {
   modalCategory.value = categories.some((category) => category.categoryId === selectedId) ? selectedId : DEFAULT_CATEGORY_ID;
 }
 
-function promptModal({ title = 'Edit', message = '', initialValue = '', saveLabel = 'Save', inputType = 'text', selectedCategoryId = DEFAULT_CATEGORY_ID, showCategory = false }) {
+function promptModal({ title = 'Edit', message = '', initialValue = '', saveLabel = 'Save', inputType = 'text', selectedCategoryId = DEFAULT_CATEGORY_ID, showCategory = false, showTime = true }) {
   return new Promise((resolve) => {
     const previousType = modalInput.type;
     const isPassword = inputType === 'password';
@@ -283,10 +331,12 @@ function promptModal({ title = 'Edit', message = '', initialValue = '', saveLabe
     modalMessage.textContent = message;
     modalInput.type = inputType;
     modalInput.value = initialValue || '';
-    modalTime.style.display = isPassword ? 'none' : 'block';
+    modalTime.style.display = !isPassword && showTime ? 'block' : 'none';
     modalTime.value = '';
     modalNotes.style.display = 'none';
     modalDelete.style.display = 'none';
+    if (modalColorWrap) modalColorWrap.classList.add('hidden');
+    if (modalColorPalette) modalColorPalette.innerHTML = '';
     if (modalCategory) {
       modalCategory.style.display = !isPassword && showCategory ? 'block' : 'none';
       fillCategoryOptions(selectedCategoryId);
@@ -303,6 +353,8 @@ function promptModal({ title = 'Edit', message = '', initialValue = '', saveLabe
       modalTime.style.display = 'block';
       modalTime.value = '';
       if (modalCategory) modalCategory.style.display = 'none';
+      if (modalColorWrap) modalColorWrap.classList.add('hidden');
+      if (modalColorPalette) modalColorPalette.innerHTML = '';
       modalSave.removeEventListener('click', onSave);
       modalCancel.removeEventListener('click', onCancel);
       modalBackdrop.removeEventListener('click', onBackdrop);
@@ -311,7 +363,7 @@ function promptModal({ title = 'Edit', message = '', initialValue = '', saveLabe
     };
     const onSave = () => close(isPassword ? modalInput.value : {
       title: modalInput.value,
-      dueTime: formatMilitaryTime(modalTime.value) || null,
+      dueTime: showTime ? formatMilitaryTime(modalTime.value) || null : null,
       categoryId: showCategory && modalCategory ? modalCategory.value || DEFAULT_CATEGORY_ID : selectedCategoryId
     });
     const onCancel = () => close(null);
@@ -415,6 +467,75 @@ function confirmDelete(message = 'Are you sure you want to delete this task?') {
   });
 }
 
+function categoryEditorModal(category = null) {
+  return new Promise((resolve) => {
+    const isExisting = !!category;
+    categoryModalTitle.textContent = isExisting ? 'Edit Category' : 'New Category';
+    categoryModalMessage.textContent = isExisting
+      ? (category.categoryId === DEFAULT_CATEGORY_ID
+        ? 'Update the default category name or color.'
+        : 'Update the category name or color. You can also delete it and move its tasks to Uncategorized.')
+      : 'Create a category with a name and color.';
+    categoryModalInput.value = category?.name || '';
+    categoryModalSave.textContent = isExisting ? 'Save' : 'Create';
+    categoryModalDelete.style.display = isExisting && category.categoryId !== DEFAULT_CATEGORY_ID ? 'inline-flex' : 'none';
+    const palette = wirePaletteSelection(categoryModalPalette, category?.color || DEFAULT_CATEGORY_COLOR);
+    categoryModal.style.display = 'grid';
+    categoryModal.setAttribute('aria-hidden', 'false');
+    setTimeout(() => categoryModalInput.focus(), 0);
+
+    const close = (val) => {
+      categoryModal.style.display = 'none';
+      categoryModal.setAttribute('aria-hidden', 'true');
+      palette.destroy?.();
+      categoryModalSave.removeEventListener('click', onSave);
+      categoryModalCancel.removeEventListener('click', onCancel);
+      categoryModalDelete.removeEventListener('click', onDelete);
+      categoryModal.removeEventListener('click', onBackdrop);
+      categoryModalInput.removeEventListener('keydown', onKey);
+      resolve(val);
+    };
+    const onSave = () => close({ name: categoryModalInput.value.trim(), color: palette.getValue() });
+    const onDelete = () => close({ delete: true, name: categoryModalInput.value.trim(), color: palette.getValue() });
+    const onCancel = () => close(null);
+    const onBackdrop = (e) => { if (e.target === categoryModal) close(null); };
+    const onKey = (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); onSave(); }
+      if (e.key === 'Escape') { e.preventDefault(); onCancel(); }
+    };
+
+    categoryModalSave.addEventListener('click', onSave);
+    categoryModalCancel.addEventListener('click', onCancel);
+    categoryModalDelete.addEventListener('click', onDelete);
+    categoryModal.addEventListener('click', onBackdrop);
+    categoryModalInput.addEventListener('keydown', onKey);
+  });
+}
+
+function confirmCategoryDelete(categoryName) {
+  return new Promise((resolve) => {
+    categoryDeleteModalMessage.textContent = `Delete “${categoryName}”? Tasks in it will move to Uncategorized.`;
+    categoryDeleteModal.style.display = 'grid';
+    categoryDeleteModal.setAttribute('aria-hidden', 'false');
+
+    const close = (val) => {
+      categoryDeleteModal.style.display = 'none';
+      categoryDeleteModal.setAttribute('aria-hidden', 'true');
+      categoryDeleteModalConfirm.removeEventListener('click', onConfirm);
+      categoryDeleteModalCancel.removeEventListener('click', onCancel);
+      categoryDeleteModal.removeEventListener('click', onBackdrop);
+      resolve(val);
+    };
+    const onConfirm = () => close(true);
+    const onCancel = () => close(false);
+    const onBackdrop = (e) => { if (e.target === categoryDeleteModal) close(false); };
+
+    categoryDeleteModalConfirm.addEventListener('click', onConfirm);
+    categoryDeleteModalCancel.addEventListener('click', onCancel);
+    categoryDeleteModal.addEventListener('click', onBackdrop);
+  });
+}
+
 function categoryMeta(categoryId) {
   const category = getCategoryById(categoryId);
   return {
@@ -472,16 +593,9 @@ async function deleteCategory(category) {
 }
 
 async function manageCategories() {
-  const created = await promptModal({
-    title: 'New Category',
-    message: 'Create a category. You can edit or delete any category by clicking its chip above the calendar.',
-    initialValue: '',
-    saveLabel: 'Create',
-    inputType: 'text'
-  });
-  if (!created?.title) return;
-  const color = window.prompt(`Color for ${created.title}`, '#7dff63') || '#7dff63';
-  await saveCategory({ name: created.title, color });
+  const created = await categoryEditorModal();
+  if (!created?.name) return;
+  await saveCategory({ name: created.name, color: created.color });
   await loadTasks();
 }
 
@@ -706,22 +820,16 @@ if (categoryList) {
     const chip = e.target.closest('[data-category-id]');
     if (!chip) return;
     const category = getCategoryById(chip.getAttribute('data-category-id') || DEFAULT_CATEGORY_ID);
-    const renamed = await promptModal({
-      title: 'Edit Category',
-      message: category.categoryId === DEFAULT_CATEGORY_ID
-        ? 'Rename the default category or keep it as-is and just change the color.'
-        : 'Rename the category here. After saving, you can also delete it and its tasks will move to Uncategorized.',
-      initialValue: category.name,
-      saveLabel: 'Save',
-      inputType: 'text'
-    });
-    if (!renamed?.title) return;
-    const color = window.prompt(`Color for ${renamed.title}`, category.color) || category.color;
+    const edited = await categoryEditorModal(category);
+    if (!edited) return;
     try {
       setSync('Syncing…');
-      await saveCategory({ ...category, name: renamed.title, color });
-      if (category.categoryId !== DEFAULT_CATEGORY_ID && window.confirm(`Delete category “${renamed.title}”? Tasks in it will move to Uncategorized.`)) {
+      if (edited.delete) {
+        if (!await confirmCategoryDelete(category.name)) return;
         await deleteCategory(category);
+      } else {
+        if (!edited.name) return;
+        await saveCategory({ ...category, name: edited.name, color: edited.color });
       }
       await refreshAfterMutation();
     } catch (err) {
@@ -825,6 +933,7 @@ async function openCreateTaskModalForDay(ymd) {
     initialValue: '',
     saveLabel: 'Create',
     showCategory: true,
+    showTime: false,
     selectedCategoryId: DEFAULT_CATEGORY_ID
   });
   if (next == null) return;

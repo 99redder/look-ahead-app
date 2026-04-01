@@ -21,6 +21,9 @@
       <input id="modal-input" class="modal-input" type="text" />
       <input id="modal-time" class="modal-input" type="text" maxlength="4" placeholder="Time (HHMM, e.g. 0800)" />
       <select id="modal-category" class="modal-input" style="display:none;"></select>
+      <div id="modal-color-wrap" class="modal-color-wrap hidden" aria-label="Category color">
+        <div id="modal-color-palette" class="modal-color-palette"></div>
+      </div>
       <textarea id="modal-notes" class="modal-notes" rows="6" style="display:none;" placeholder="Notes (only visible in this modal)"></textarea>
       <div class="modal-actions">
         <button id="modal-delete" type="button" style="color:#ff9b9b;border-color:#5a2222;margin-right:auto;">Delete</button>
@@ -76,6 +79,33 @@
     </div>
   </div>
 
-  <script src="app.js?v=202604011705"></script>
+  <div id="category-modal" class="modal-backdrop" style="display:none;" aria-hidden="true">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="category-modal-title">
+      <h3 id="category-modal-title" class="modal-title">Category</h3>
+      <p id="category-modal-message" class="modal-message"></p>
+      <input id="category-modal-input" class="modal-input" type="text" placeholder="Category name" />
+      <div class="modal-color-wrap">
+        <div id="category-modal-palette" class="modal-color-palette"></div>
+      </div>
+      <div class="modal-actions">
+        <button id="category-modal-delete" type="button" style="display:none;color:#ff9b9b;border-color:#5a2222;margin-right:auto;">Delete</button>
+        <button id="category-modal-cancel" type="button">Cancel</button>
+        <button id="category-modal-save" type="button">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="category-delete-modal" class="modal-backdrop" style="display:none;" aria-hidden="true">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="category-delete-modal-title">
+      <h3 id="category-delete-modal-title" class="modal-title">Delete Category</h3>
+      <p id="category-delete-modal-message" class="modal-message">Delete this category? Tasks in it will move to Uncategorized.</p>
+      <div class="modal-actions">
+        <button id="category-delete-modal-cancel" type="button">Keep Category</button>
+        <button id="category-delete-modal-confirm" type="button" style="background:#5a2222;border-color:#5a2222;color:#ff9b9b;">Move Tasks & Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js?v=202604011715"></script>
 </body>
 </html>
