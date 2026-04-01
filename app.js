@@ -637,11 +637,9 @@ function renderCategories() {
 }
 
 function renderTaskItem(task, compact = false) {
-  const category = getTaskCategory(task);
   const title = `${formatMilitaryTime(task.due_time) ? `${formatMilitaryTime(task.due_time)} ` : ''}${task.title}`;
   return `<div class="cal-item${task.status === 'done' ? ' done' : ''}" draggable="true" data-drag-task-id="${task.id}" style="${getTaskChipStyle(task)}">
     <span class="cal-item-title">${escapeHtml(title)}</span>
-    ${compact ? '' : `<span class="cal-item-category">${escapeHtml(category.name)}</span>`}
     <span class="cal-item-delete" data-delete-id="${task.id}">×</span>
   </div>`;
 }
@@ -733,7 +731,7 @@ function renderList() {
       <div class="item ${task.status === 'done' ? 'done' : ''}" draggable="true" data-drag-task-id="${task.id}">
         <div>
           <div class="title">${escapeHtml(task.title)}</div>
-          <div>${escapeHtml(task.due_date || 'No date')}${formatMilitaryTime(task.due_time) ? ` · ${escapeHtml(formatMilitaryTime(task.due_time))}` : ''} · ${escapeHtml(category.name)}</div>
+          <div class="item-meta"><span class="task-category-dot" style="background:${escapeHtml(normalizeHexColor(category.color))};"></span>${escapeHtml(task.due_date || 'No date')}${formatMilitaryTime(task.due_time) ? ` · ${escapeHtml(formatMilitaryTime(task.due_time))}` : ''}</div>
         </div>
         <div class="actions">
           <input type="date" value="${escapeHtml(task.due_date || '')}" data-id="${task.id}" data-act="date" style="width:140px;padding:6px;" />

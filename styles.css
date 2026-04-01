@@ -69,11 +69,12 @@ button:hover { border-color: var(--pink); color: var(--pink); }
 .item.dragging{opacity:.55;transform:scale(.99)}
 .cal-day.drop-target{border-color:#7dff63!important;box-shadow:0 0 0 1px #7dff63 inset}
 .item.done .title { text-decoration: line-through; opacity: .6; }
+.item-meta{display:flex;align-items:center;gap:8px;opacity:.82}
+.task-category-dot{width:10px;height:10px;border-radius:50%;display:inline-block;box-shadow:0 0 0 1px rgba(255,255,255,.12) inset;flex:0 0 auto}
 .actions { display: flex; gap: 6px; }
 
 .cal-item { display: flex; justify-content: space-between; align-items: center; gap: 6px; }
 .cal-item-title { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.cal-item-category{font-size:10px;opacity:.82;text-transform:uppercase;letter-spacing:.05em}
 .cal-item-delete { opacity: 0; font-size: 14px; font-weight: 700; cursor: pointer; color: inherit; padding: 0 2px; }
 .cal-item:hover .cal-item-delete { opacity: 1; }
 
