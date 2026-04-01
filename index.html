@@ -11,7 +11,7 @@
   <link rel="apple-touch-icon" sizes="192x192" href="pwa-icon-192.png" />
   <link rel="apple-touch-icon" sizes="512x512" href="pwa-icon-512.png" />
   <link rel="manifest" href="manifest.json" />
-  <link rel="stylesheet" href="styles.css?v=202603291246" />
+  <link rel="stylesheet" href="styles.css?v=202604011705" />
 </head>
 <body>
   <div id="modal-backdrop" class="modal-backdrop" style="display:none;" aria-hidden="true">
@@ -20,6 +20,7 @@
       <p id="modal-message" class="modal-message"></p>
       <input id="modal-input" class="modal-input" type="text" />
       <input id="modal-time" class="modal-input" type="text" maxlength="4" placeholder="Time (HHMM, e.g. 0800)" />
+      <select id="modal-category" class="modal-input" style="display:none;"></select>
       <textarea id="modal-notes" class="modal-notes" rows="6" style="display:none;" placeholder="Notes (only visible in this modal)"></textarea>
       <div class="modal-actions">
         <button id="modal-delete" type="button" style="color:#ff9b9b;border-color:#5a2222;margin-right:auto;">Delete</button>
@@ -41,6 +42,14 @@
       </div>
     </header>
 
+
+    <section id="category-bar" class="category-bar">
+      <div class="category-bar-head">
+        <div class="section-title">Categories</div>
+        <button id="category-manage" type="button">Manage</button>
+      </div>
+      <div id="category-list" class="category-list"></div>
+    </section>
 
     <section>
       <div class="calendar-head">
@@ -67,6 +76,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=202603292124"></script>
+  <script src="app.js?v=202604011705"></script>
 </body>
 </html>

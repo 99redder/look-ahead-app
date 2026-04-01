@@ -4,6 +4,9 @@ const API_BASES = [
 ];
 
 const USER_ID = 'chris';
+const CATEGORY_KIND = 'category';
+const DEFAULT_CATEGORY_ID = 'uncategorized';
+const DEFAULT_CATEGORY_COLOR = '#b6ffac';
 
 const app = document.getElementById('app');
 const syncPill = document.getElementById('sync-pill');
@@ -16,6 +19,7 @@ const modalSave = document.getElementById('modal-save');
 const modalDelete = document.getElementById('modal-delete');
 const modalNotes = document.getElementById('modal-notes');
 const modalTime = document.getElementById('modal-time');
+const modalCategory = document.getElementById('modal-category');
 
 const deleteModal = document.getElementById('delete-modal');
 const deleteModalConfirm = document.getElementById('delete-modal-confirm');
@@ -26,12 +30,16 @@ const calendarGrid = document.getElementById('calendar-grid');
 const calLabel = document.getElementById('cal-label');
 const calPrev = document.getElementById('cal-prev');
 const calNext = document.getElementById('cal-next');
+const categoryBar = document.getElementById('category-bar');
+const categoryList = document.getElementById('category-list');
+const categoryManage = document.getElementById('category-manage');
 
 let tasks = [];
+let categories = [];
 let calCursor = new Date();
 let calAutoFocused = false;
 let dragTaskId = null;
-let focusMode = false; // When true, show only 1 week instead of 12
+let focusMode = false;
 
 const APP_PASSWORD_KEY = 'lookahead:app-password';
 
@@ -101,48 +109,145 @@ function setSync(text, ok = true) {
   syncPill.style.color = ok ? 'var(--muted)' : '#ff8fb3';
 }
 
-function promptModal({ title = 'Edit', message = '', initialValue = '', saveLabel = 'Save', inputType = 'text' }) {
-  return new Promise((resolve) => {
-    const previousType = modalInput.type;
-    const isPassword = inputType === 'password';
-    modalTitle.textContent = title;
-    modalMessage.textContent = message;
-    modalInput.type = inputType;
-    modalInput.value = initialValue || '';
-    modalTime.style.display = isPassword ? 'none' : 'block';
-    modalTime.value = '';
-    modalNotes.style.display = 'none';
-    modalDelete.style.display = 'none';
-    modalSave.textContent = saveLabel;
-    modalBackdrop.style.display = 'grid';
-    modalBackdrop.setAttribute('aria-hidden', 'false');
-    setTimeout(() => modalInput.focus(), 0);
+function escapeHtml(v) {
+  return String(v || '').replace(/[&<>'"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
 
-    const close = (val) => {
-      modalBackdrop.style.display = 'none';
-      modalBackdrop.setAttribute('aria-hidden', 'true');
-      modalInput.type = previousType;
-      modalTime.style.display = 'block';
-      modalTime.value = '';
-      modalSave.removeEventListener('click', onSave);
-      modalCancel.removeEventListener('click', onCancel);
-      modalBackdrop.removeEventListener('click', onBackdrop);
-      modalInput.removeEventListener('keydown', onKey);
-      resolve(val);
-    };
-    const onSave = () => close(isPassword ? modalInput.value : { title: modalInput.value, dueTime: formatMilitaryTime(modalTime.value) || null });
-    const onCancel = () => close(null);
-    const onBackdrop = (e) => { if (e.target === modalBackdrop) close(null); };
-    const onKey = (e) => {
-      if (e.key === 'Enter') { e.preventDefault(); onSave(); }
-      if (e.key === 'Escape') { e.preventDefault(); onCancel(); }
-    };
+function localDayAnchor(date = new Date()) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate(), 12, 0, 0, 0);
+}
 
-    modalSave.addEventListener('click', onSave);
-    modalCancel.addEventListener('click', onCancel);
-    modalBackdrop.addEventListener('click', onBackdrop);
-    modalInput.addEventListener('keydown', onKey);
+function startOfWeek(date) {
+  const d = localDayAnchor(date);
+  const day = d.getDay();
+  d.setDate(d.getDate() - day);
+  return localDayAnchor(d);
+}
+
+calCursor = startOfWeek(localDayAnchor());
+
+function autoFocusCalendarMonthFromTasks() {
+  calCursor = startOfWeek(localDayAnchor());
+  calAutoFocused = true;
+}
+
+function timeSortValue(task) {
+  const raw = String(task?.due_time || '').trim();
+  return /^\d{4}$/.test(raw) ? raw : '9999';
+}
+
+function sortTasksByTime(tasksList) {
+  return [...tasksList].sort((a, b) => {
+    const byTime = timeSortValue(a).localeCompare(timeSortValue(b));
+    if (byTime !== 0) return byTime;
+    return String(a.title || '').localeCompare(String(b.title || ''));
   });
+}
+
+function formatMilitaryTime(raw) {
+  const v = String(raw || '').trim();
+  return /^\d{4}$/.test(v) ? v : '';
+}
+
+function slugifyCategoryName(value) {
+  return String(value || '')
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '') || `category-${Date.now()}`;
+}
+
+function normalizeHexColor(value, fallback = DEFAULT_CATEGORY_COLOR) {
+  const v = String(value || '').trim();
+  return /^#[0-9a-fA-F]{6}$/.test(v) ? v.toLowerCase() : fallback;
+}
+
+function categoryIdForName(name, existingId = '') {
+  if (existingId) return existingId;
+  let base = slugifyCategoryName(name);
+  let next = base;
+  let i = 2;
+  const used = new Set(categories.map((category) => String(category.categoryId || category.id || '')));
+  while (used.has(next)) {
+    next = `${base}-${i++}`;
+  }
+  return next;
+}
+
+function ensureDefaultCategory() {
+  if (!categories.some((category) => category.categoryId === DEFAULT_CATEGORY_ID)) {
+    categories = [{
+      id: `category:${DEFAULT_CATEGORY_ID}`,
+      categoryId: DEFAULT_CATEGORY_ID,
+      name: 'Uncategorized',
+      color: DEFAULT_CATEGORY_COLOR,
+      title: 'Uncategorized',
+      kind: CATEGORY_KIND,
+      user_id: USER_ID,
+      status: 'open',
+      source: 'lookahead-app'
+    }, ...categories];
+  }
+}
+
+function normalizeCategory(item = {}) {
+  const name = String(item.name || item.title || 'Uncategorized').trim() || 'Uncategorized';
+  const categoryId = String(item.categoryId || item.category_id || slugifyCategoryName(name) || DEFAULT_CATEGORY_ID);
+  return {
+    ...item,
+    id: item.id || `category:${categoryId}`,
+    categoryId,
+    name,
+    color: normalizeHexColor(item.color || item.categoryColor || item.notes || DEFAULT_CATEGORY_COLOR),
+    kind: CATEGORY_KIND,
+    title: name
+  };
+}
+
+function parseCategoryPayload(rawItems) {
+  categories = rawItems
+    .filter((item) => String(item.kind || '').toLowerCase() === CATEGORY_KIND)
+    .map(normalizeCategory)
+    .sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')));
+  ensureDefaultCategory();
+}
+
+function normalizeTask(item = {}) {
+  const task = { ...item };
+  task.categoryId = String(
+    task.categoryId
+      || task.category_id
+      || task.meta?.categoryId
+      || task.source_id
+      || DEFAULT_CATEGORY_ID
+  );
+  return task;
+}
+
+function getCategoryById(categoryId) {
+  ensureDefaultCategory();
+  return categories.find((category) => String(category.categoryId) === String(categoryId))
+    || categories.find((category) => category.categoryId === DEFAULT_CATEGORY_ID)
+    || { categoryId: DEFAULT_CATEGORY_ID, name: 'Uncategorized', color: DEFAULT_CATEGORY_COLOR };
+}
+
+function getTaskCategory(task) {
+  return getCategoryById(task?.categoryId || DEFAULT_CATEGORY_ID);
+}
+
+function getTaskChipStyle(task) {
+  const category = getTaskCategory(task);
+  const color = normalizeHexColor(category.color, DEFAULT_CATEGORY_COLOR);
+  return `background:${color};border-color:${color};color:${getContrastColor(color)};`;
+}
+
+function getContrastColor(hex) {
+  const clean = normalizeHexColor(hex, DEFAULT_CATEGORY_COLOR).slice(1);
+  const r = parseInt(clean.slice(0, 2), 16);
+  const g = parseInt(clean.slice(2, 4), 16);
+  const b = parseInt(clean.slice(4, 6), 16);
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luminance > 0.62 ? '#081009' : '#f4fff1';
 }
 
 function getTaskNotes(taskId) {
@@ -161,15 +266,81 @@ function setTaskNotes(taskId, notes) {
   } catch {}
 }
 
+function fillCategoryOptions(selectedId = DEFAULT_CATEGORY_ID) {
+  if (!modalCategory) return;
+  ensureDefaultCategory();
+  modalCategory.innerHTML = categories
+    .map((category) => `<option value="${escapeHtml(category.categoryId)}">${escapeHtml(category.name)}</option>`)
+    .join('');
+  modalCategory.value = categories.some((category) => category.categoryId === selectedId) ? selectedId : DEFAULT_CATEGORY_ID;
+}
+
+function promptModal({ title = 'Edit', message = '', initialValue = '', saveLabel = 'Save', inputType = 'text', selectedCategoryId = DEFAULT_CATEGORY_ID, showCategory = false }) {
+  return new Promise((resolve) => {
+    const previousType = modalInput.type;
+    const isPassword = inputType === 'password';
+    modalTitle.textContent = title;
+    modalMessage.textContent = message;
+    modalInput.type = inputType;
+    modalInput.value = initialValue || '';
+    modalTime.style.display = isPassword ? 'none' : 'block';
+    modalTime.value = '';
+    modalNotes.style.display = 'none';
+    modalDelete.style.display = 'none';
+    if (modalCategory) {
+      modalCategory.style.display = !isPassword && showCategory ? 'block' : 'none';
+      fillCategoryOptions(selectedCategoryId);
+    }
+    modalSave.textContent = saveLabel;
+    modalBackdrop.style.display = 'grid';
+    modalBackdrop.setAttribute('aria-hidden', 'false');
+    setTimeout(() => modalInput.focus(), 0);
+
+    const close = (val) => {
+      modalBackdrop.style.display = 'none';
+      modalBackdrop.setAttribute('aria-hidden', 'true');
+      modalInput.type = previousType;
+      modalTime.style.display = 'block';
+      modalTime.value = '';
+      if (modalCategory) modalCategory.style.display = 'none';
+      modalSave.removeEventListener('click', onSave);
+      modalCancel.removeEventListener('click', onCancel);
+      modalBackdrop.removeEventListener('click', onBackdrop);
+      modalInput.removeEventListener('keydown', onKey);
+      resolve(val);
+    };
+    const onSave = () => close(isPassword ? modalInput.value : {
+      title: modalInput.value,
+      dueTime: formatMilitaryTime(modalTime.value) || null,
+      categoryId: showCategory && modalCategory ? modalCategory.value || DEFAULT_CATEGORY_ID : selectedCategoryId
+    });
+    const onCancel = () => close(null);
+    const onBackdrop = (e) => { if (e.target === modalBackdrop) close(null); };
+    const onKey = (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); onSave(); }
+      if (e.key === 'Escape') { e.preventDefault(); onCancel(); }
+    };
+
+    modalSave.addEventListener('click', onSave);
+    modalCancel.addEventListener('click', onCancel);
+    modalBackdrop.addEventListener('click', onBackdrop);
+    modalInput.addEventListener('keydown', onKey);
+  });
+}
+
 function taskEditorModal(task) {
   return new Promise((resolve) => {
     modalTitle.textContent = 'Edit Task';
-    modalMessage.textContent = 'Update title, time, and private notes.';
+    modalMessage.textContent = 'Update title, time, category, and private notes.';
     modalInput.value = task?.title || '';
     modalNotes.style.display = 'block';
     modalTime.style.display = 'block';
     modalTime.value = formatMilitaryTime(task?.due_time);
     modalNotes.value = getTaskNotes(task.id);
+    if (modalCategory) {
+      modalCategory.style.display = 'block';
+      fillCategoryOptions(task?.categoryId || DEFAULT_CATEGORY_ID);
+    }
     modalSave.textContent = 'Save';
     modalDelete.style.display = 'block';
     modalBackdrop.style.display = 'grid';
@@ -181,6 +352,7 @@ function taskEditorModal(task) {
       modalBackdrop.setAttribute('aria-hidden', 'true');
       modalNotes.style.display = 'none';
       modalTime.value = '';
+      if (modalCategory) modalCategory.style.display = 'none';
       modalDelete.style.display = 'none';
       modalSave.removeEventListener('click', onSave);
       modalCancel.removeEventListener('click', onCancel);
@@ -193,7 +365,12 @@ function taskEditorModal(task) {
     const onSave = async () => {
       const title = (modalInput.value || '').trim();
       if (!title) return;
-      close({ title, notes: modalNotes.value, dueTime: formatMilitaryTime(modalTime.value) || null });
+      close({
+        title,
+        notes: modalNotes.value,
+        dueTime: formatMilitaryTime(modalTime.value) || null,
+        categoryId: modalCategory?.value || DEFAULT_CATEGORY_ID
+      });
     };
     const onCancel = () => close(null);
     const onDelete = () => close({ delete: true });
@@ -219,7 +396,7 @@ function confirmDelete(message = 'Are you sure you want to delete this task?') {
     document.getElementById('delete-modal-message').textContent = message;
     deleteModal.style.display = 'grid';
     deleteModal.setAttribute('aria-hidden', 'false');
-    
+
     const close = (val) => {
       deleteModal.style.display = 'none';
       deleteModal.setAttribute('aria-hidden', 'true');
@@ -231,66 +408,115 @@ function confirmDelete(message = 'Are you sure you want to delete this task?') {
     const onConfirm = () => close(true);
     const onCancel = () => close(false);
     const onBackdrop = (e) => { if (e.target === deleteModal) close(false); };
-    
+
     deleteModalConfirm.addEventListener('click', onConfirm);
     deleteModalCancel.addEventListener('click', onCancel);
     deleteModal.addEventListener('click', onBackdrop);
   });
 }
 
-function localDayAnchor(date = new Date()) {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate(), 12, 0, 0, 0);
+function categoryMeta(categoryId) {
+  const category = getCategoryById(categoryId);
+  return {
+    categoryId: category.categoryId,
+    categoryColor: category.color,
+    categoryName: category.name
+  };
 }
 
-function ymdToday() {
-  const d = localDayAnchor();
-  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+async function saveCategory(category) {
+  const name = String(category?.name || '').trim();
+  if (!name) throw new Error('Category name is required');
+  const id = category?.id || `category:${categoryIdForName(name, category?.categoryId)}`;
+  const categoryId = categoryIdForName(name, String(id).replace(/^category:/, ''));
+  await api('/api/planner/items', {
+    method: 'POST',
+    body: JSON.stringify({
+      id,
+      userId: USER_ID,
+      kind: CATEGORY_KIND,
+      title: name,
+      name,
+      color: normalizeHexColor(category?.color),
+      categoryId,
+      dueDate: null,
+      dueTime: null,
+      status: 'open',
+      source: 'lookahead-app'
+    })
+  });
 }
 
-function startOfWeek(date) {
-  const d = localDayAnchor(date);
-  const day = d.getDay();
-  d.setDate(d.getDate() - day);
-  return localDayAnchor(d);
+async function deleteCategory(category) {
+  const categoryId = category?.categoryId;
+  if (!categoryId || categoryId === DEFAULT_CATEGORY_ID) throw new Error('Default category cannot be deleted');
+  const affectedTasks = tasks.filter((task) => task.categoryId === categoryId);
+  for (const task of affectedTasks) {
+    const fallback = categoryMeta(DEFAULT_CATEGORY_ID);
+    await api('/api/planner/items', {
+      method: 'POST',
+      body: JSON.stringify({
+        id: task.id,
+        userId: USER_ID,
+        kind: task.kind || 'task',
+        title: task.title,
+        dueDate: task.due_date || null,
+        dueTime: task.due_time || null,
+        status: task.status || 'open',
+        source: task.source || 'lookahead-app',
+        ...fallback
+      })
+    });
+  }
+  await api('/api/planner/items/delete', { method: 'POST', body: JSON.stringify({ id: category.id }) });
 }
 
-calCursor = startOfWeek(localDayAnchor()); // Always start from current week
-
-function autoFocusCalendarMonthFromTasks() {
-  // Keep the calendar anchored to the current week unless the user moves it.
-  calCursor = startOfWeek(localDayAnchor());
-  calAutoFocused = true;
+async function manageCategories() {
+  const created = await promptModal({
+    title: 'New Category',
+    message: 'Create a category. You can edit or delete any category by clicking its chip above the calendar.',
+    initialValue: '',
+    saveLabel: 'Create',
+    inputType: 'text'
+  });
+  if (!created?.title) return;
+  const color = window.prompt(`Color for ${created.title}`, '#7dff63') || '#7dff63';
+  await saveCategory({ name: created.title, color });
+  await loadTasks();
 }
 
 async function loadTasks() {
   setSync('Syncing…');
   const data = await api(`/api/planner/items?userId=${encodeURIComponent(USER_ID)}&includeDone=1`);
-  tasks = Array.isArray(data.items) ? data.items : [];
+  const items = Array.isArray(data.items) ? data.items : [];
+  parseCategoryPayload(items);
+  tasks = items
+    .filter((item) => String(item.kind || 'task').toLowerCase() !== CATEGORY_KIND)
+    .map(normalizeTask);
   if (!calAutoFocused) autoFocusCalendarMonthFromTasks();
   setSync('Synced');
   render();
 }
 
-function timeSortValue(task) {
-  const raw = String(task?.due_time || '').trim();
-  return /^\d{4}$/.test(raw) ? raw : '9999';
+function renderCategories() {
+  if (!categoryList) return;
+  ensureDefaultCategory();
+  categoryList.innerHTML = categories.map((category) => `
+    <button class="category-chip${category.categoryId === DEFAULT_CATEGORY_ID ? ' category-chip-default' : ''}" data-category-id="${escapeHtml(category.categoryId)}" type="button">
+      <span class="category-dot" style="background:${escapeHtml(normalizeHexColor(category.color))};"></span>
+      <span>${escapeHtml(category.name)}</span>
+    </button>
+  `).join('');
 }
 
-function sortTasksByTime(tasksList) {
-  return [...tasksList].sort((a, b) => {
-    const byTime = timeSortValue(a).localeCompare(timeSortValue(b));
-    if (byTime !== 0) return byTime;
-    return String(a.title || '').localeCompare(String(b.title || ''));
-  });
-}
-
-function formatMilitaryTime(raw) {
-  const v = String(raw || '').trim();
-  return /^\d{4}$/.test(v) ? v : '';
-}
-
-function escapeHtml(v) {
-  return String(v || '').replace(/[&<>'"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+function renderTaskItem(task, compact = false) {
+  const category = getTaskCategory(task);
+  const title = `${formatMilitaryTime(task.due_time) ? `${formatMilitaryTime(task.due_time)} ` : ''}${task.title}`;
+  return `<div class="cal-item${task.status === 'done' ? ' done' : ''}" draggable="true" data-drag-task-id="${task.id}" style="${getTaskChipStyle(task)}">
+    <span class="cal-item-title">${escapeHtml(title)}</span>
+    ${compact ? '' : `<span class="cal-item-category">${escapeHtml(category.name)}</span>`}
+    <span class="cal-item-delete" data-delete-id="${task.id}">×</span>
+  </div>`;
 }
 
 function renderCalendar() {
@@ -298,14 +524,11 @@ function renderCalendar() {
   const currentWeekStart = startOfWeek(today);
   const cursor = startOfWeek(localDayAnchor(calCursor || currentWeekStart));
   const start = cursor < currentWeekStart ? currentWeekStart : cursor;
-  const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+  const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
   const startYear = start.getFullYear();
   const startMonth = start.getMonth();
   const startDay = start.getDate();
-
   const daysToShow = focusMode ? 7 : 42;
-
-  // Format date explicitly using local time
   const dateFormatter = new Intl.DateTimeFormat('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
   const startLabel = dateFormatter.format(start);
 
@@ -318,89 +541,102 @@ function renderCalendar() {
   }
 
   if (focusMode) {
-    // Focus mode: today big on left, remaining days on right
-    const dows = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-    const dowLabels = dows.map(d => `<div class="cal-dow">${d}</div>`).join('');
-    
-    // Build the week starting from current cursor week
+    const dows = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     let todayCell = '';
-    let otherDays = [];
-    
+    const otherDays = [];
+
     for (let i = 0; i < 7; i++) {
       const d = new Date(startYear, startMonth, startDay + i, 12, 0, 0, 0);
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-      const dayItems = sortTasksByTime(tasks.filter(t => (t.due_date || '') === key))
-        .sort((a,b) => (a.status === 'done') - (b.status === 'done'));
-      const html = dayItems.slice(0, 8).map(t => `<div class="cal-item" draggable="true" data-drag-task-id="${t.id}"><span class="cal-item-title">${formatMilitaryTime(t.due_time) ? escapeHtml(formatMilitaryTime(t.due_time) + ' ') : ''}${escapeHtml(t.title)}</span><span class="cal-item-delete" data-delete-id="${t.id}">×</span></div>`).join('');
-      const more = dayItems.length > 8 ? `<div class="cal-item">+${dayItems.length - 8} more</div>` : '';
+      const dayItems = sortTasksByTime(tasks.filter((task) => (task.due_date || '') === key))
+        .sort((a, b) => (a.status === 'done') - (b.status === 'done'));
+      const html = dayItems.slice(0, 8).map((task) => renderTaskItem(task, true)).join('');
+      const more = dayItems.length > 8 ? `<div class="cal-item cal-item-more">+${dayItems.length - 8} more</div>` : '';
       const isToday = key === todayKey;
-      
-      const timeline = isToday ? dayItems.map(t => `<div class=\"focus-time-item ${t.status === 'done' ? 'done' : ''}\"><span class=\"focus-time\">${escapeHtml(formatMilitaryTime(t.due_time) || 'UNSET')}</span><span class=\"focus-time-title\">${escapeHtml(t.title)}</span></div>`).join('') || '<div class=\"empty-state\">No tasks for this day</div>' : `${html}${more}`;
+      const timeline = isToday
+        ? dayItems.map((task) => `<div class="focus-time-item ${task.status === 'done' ? 'done' : ''}" style="border-left:4px solid ${escapeHtml(getTaskCategory(task).color)}"><span class="focus-time">${escapeHtml(formatMilitaryTime(task.due_time) || 'UNSET')}</span><span class="focus-time-title">${escapeHtml(task.title)}</span></div>`).join('') || '<div class="empty-state">No tasks for this day</div>'
+        : `${html}${more}`;
       const dayContent = `
         <div class="cal-day ${isToday ? 'today' : ''}" data-date="${key}">
           <div class="cal-day-header">${dows[d.getDay()]}</div>
           <div class="cal-day-num">${d.getDate()}</div>
           ${timeline}
         </div>`;
-      
-      if (isToday) {
-        todayCell = `<div class="focus-today">${dayContent}</div>`;
-      } else {
-        otherDays.push(dayContent);
-      }
+
+      if (isToday) todayCell = `<div class="focus-today">${dayContent}</div>`;
+      else otherDays.push(dayContent);
     }
-    
+
     calendarGrid.innerHTML = `<div class="focus-grid">${todayCell}<div class="focus-remaining">${otherDays.join('')}</div></div>`;
-  } else {
-    // Normal mode: fixed Sun-Sat columns, starting with the current week
-    const dows = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-    const cells = [];
-    dows.forEach(d => cells.push(`<div class="cal-dow">${d}</div>`));
-
-    const offset = start.getDay();
-    for (let i = 0; i < offset; i++) {
-      cells.push(`<div class="cal-day past"></div>`);
-    }
-
-    for (let i = 0; i < daysToShow; i++) {
-      const d = new Date(startYear, startMonth, startDay + i, 12, 0, 0, 0);
-      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-      const dayItems = sortTasksByTime(tasks.filter(t => (t.due_date || '') === key))
-        .sort((a,b) => (a.status === 'done') - (b.status === 'done'));
-      const html = dayItems.slice(0, 8).map(t => `<div class="cal-item" draggable="true" data-drag-task-id="${t.id}"><span class="cal-item-title">${formatMilitaryTime(t.due_time) ? escapeHtml(formatMilitaryTime(t.due_time) + ' ') : ''}${escapeHtml(t.title)}</span><span class="cal-item-delete" data-delete-id="${t.id}">×</span></div>`).join('');
-      const more = dayItems.length > 8 ? `<div class="cal-item">+${dayItems.length - 8} more</div>` : '';
-      const monthStarts = d.getDate() === 1;
-      const monthBadge = monthStarts
-        ? `<div class="cal-month-badge">${new Intl.DateTimeFormat('en-US', { month: 'short' }).format(d)}</div>`
-        : '';
-      cells.push(`<div class="cal-day ${key === todayKey ? 'today' : ''}" data-date="${key}">${monthBadge}<div class="cal-day-num">${d.getDate()}</div>${html}${more}</div>`);
-    }
-
-    calendarGrid.innerHTML = `<div class="rolling-grid">${cells.join('')}</div>`;
+    return;
   }
+
+  const dows = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const cells = [];
+  dows.forEach((d) => cells.push(`<div class="cal-dow">${d}</div>`));
+
+  const offset = start.getDay();
+  for (let i = 0; i < offset; i++) {
+    cells.push('<div class="cal-day past"></div>');
+  }
+
+  for (let i = 0; i < daysToShow; i++) {
+    const d = new Date(startYear, startMonth, startDay + i, 12, 0, 0, 0);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const dayItems = sortTasksByTime(tasks.filter((task) => (task.due_date || '') === key))
+      .sort((a, b) => (a.status === 'done') - (b.status === 'done'));
+    const html = dayItems.slice(0, 8).map((task) => renderTaskItem(task)).join('');
+    const more = dayItems.length > 8 ? `<div class="cal-item cal-item-more">+${dayItems.length - 8} more</div>` : '';
+    const monthStarts = d.getDate() === 1;
+    const monthBadge = monthStarts
+      ? `<div class="cal-month-badge">${new Intl.DateTimeFormat('en-US', { month: 'short' }).format(d)}</div>`
+      : '';
+    cells.push(`<div class="cal-day ${key === todayKey ? 'today' : ''}" data-date="${key}">${monthBadge}<div class="cal-day-num">${d.getDate()}</div>${html}${more}</div>`);
+  }
+
+  calendarGrid.innerHTML = `<div class="rolling-grid">${cells.join('')}</div>`;
 }
 
 function renderList() {
   if (!taskList) return;
   const sorted = [...tasks].sort((a, b) => ((a.due_date || '').localeCompare(b.due_date || '') || timeSortValue(a).localeCompare(timeSortValue(b))));
-  taskList.innerHTML = sorted.map(t => `
-    <div class="item ${t.status === 'done' ? 'done' : ''}" draggable="true" data-drag-task-id="${t.id}">
-      <div>
-        <div class="title">${escapeHtml(t.title)}</div>
-        <div>${escapeHtml(t.due_date || 'No date')}${formatMilitaryTime(t.due_time) ? ' · ' + escapeHtml(formatMilitaryTime(t.due_time)) : ''}</div>
+  taskList.innerHTML = sorted.map((task) => {
+    const category = getTaskCategory(task);
+    return `
+      <div class="item ${task.status === 'done' ? 'done' : ''}" draggable="true" data-drag-task-id="${task.id}">
+        <div>
+          <div class="title">${escapeHtml(task.title)}</div>
+          <div>${escapeHtml(task.due_date || 'No date')}${formatMilitaryTime(task.due_time) ? ` · ${escapeHtml(formatMilitaryTime(task.due_time))}` : ''} · ${escapeHtml(category.name)}</div>
+        </div>
+        <div class="actions">
+          <input type="date" value="${escapeHtml(task.due_date || '')}" data-id="${task.id}" data-act="date" style="width:140px;padding:6px;" />
+          <button data-id="${task.id}" data-act="toggle">${task.status === 'done' ? 'Undo' : 'Done'}</button>
+          <button data-id="${task.id}" data-act="delete">Delete</button>
+        </div>
       </div>
-      <div class="actions">
-        <input type="date" value="${escapeHtml(t.due_date || '')}" data-id="${t.id}" data-act="date" style="width:140px;padding:6px;" />
-        <button data-id="${t.id}" data-act="toggle">${t.status === 'done' ? 'Undo' : 'Done'}</button>
-        <button data-id="${t.id}" data-act="delete">Delete</button>
-      </div>
-    </div>
-  `).join('');
+    `;
+  }).join('');
 }
 
 function render() {
+  renderCategories();
   renderCalendar();
   renderList();
+}
+
+function rememberScroll() {
+  return { grid: document.querySelector('.rolling-grid')?.scrollTop || 0, window: window.scrollY };
+}
+
+function restoreScroll(scrollPos) {
+  if (document.querySelector('.rolling-grid')) document.querySelector('.rolling-grid').scrollTop = scrollPos.grid;
+  window.scrollTo(0, scrollPos.window);
+}
+
+async function refreshAfterMutation() {
+  const scrollPos = rememberScroll();
+  await loadTasks();
+  restoreScroll(scrollPos);
 }
 
 if (taskList) {
@@ -413,9 +649,7 @@ if (taskList) {
       setSync('Syncing…');
       if (act === 'toggle') await api('/api/planner/items/toggle', { method: 'POST', body: JSON.stringify({ id }) });
       if (act === 'delete') await api('/api/planner/items/delete', { method: 'POST', body: JSON.stringify({ id }) });
-      const scrollPos = { grid: document.querySelector(".rolling-grid")?.scrollTop || 0, window: window.scrollY };// debug removed
-      await loadTasks();
-      if(document.querySelector(".rolling-grid")) document.querySelector(".rolling-grid").scrollTop = scrollPos.grid; window.scrollTo(0, scrollPos.window);// debug removed
+      await refreshAfterMutation();
     } catch (err) {
       setSync(err.message || 'Sync error', false);
     }
@@ -430,9 +664,7 @@ if (taskList) {
     try {
       setSync('Syncing…');
       await api('/api/planner/items/reschedule', { method: 'POST', body: JSON.stringify({ id, dueDate }) });
-      const scrollPos = { grid: document.querySelector(".rolling-grid")?.scrollTop || 0, window: window.scrollY };// debug removed
-      await loadTasks();
-      if(document.querySelector(".rolling-grid")) document.querySelector(".rolling-grid").scrollTop = scrollPos.grid; window.scrollTo(0, scrollPos.window);// debug removed
+      await refreshAfterMutation();
     } catch (err) {
       setSync(err.message || 'Sync error', false);
     }
@@ -459,6 +691,45 @@ document.getElementById('cal-focus').addEventListener('click', () => {
   renderCalendar();
 });
 
+if (categoryManage) {
+  categoryManage.addEventListener('click', async () => {
+    try {
+      await manageCategories();
+    } catch (err) {
+      setSync(err.message || 'Category error', false);
+    }
+  });
+}
+
+if (categoryList) {
+  categoryList.addEventListener('click', async (e) => {
+    const chip = e.target.closest('[data-category-id]');
+    if (!chip) return;
+    const category = getCategoryById(chip.getAttribute('data-category-id') || DEFAULT_CATEGORY_ID);
+    const renamed = await promptModal({
+      title: 'Edit Category',
+      message: category.categoryId === DEFAULT_CATEGORY_ID
+        ? 'Rename the default category or keep it as-is and just change the color.'
+        : 'Rename the category here. After saving, you can also delete it and its tasks will move to Uncategorized.',
+      initialValue: category.name,
+      saveLabel: 'Save',
+      inputType: 'text'
+    });
+    if (!renamed?.title) return;
+    const color = window.prompt(`Color for ${renamed.title}`, category.color) || category.color;
+    try {
+      setSync('Syncing…');
+      await saveCategory({ ...category, name: renamed.title, color });
+      if (category.categoryId !== DEFAULT_CATEGORY_ID && window.confirm(`Delete category “${renamed.title}”? Tasks in it will move to Uncategorized.`)) {
+        await deleteCategory(category);
+      }
+      await refreshAfterMutation();
+    } catch (err) {
+      setSync(err.message || 'Category error', false);
+    }
+  });
+}
+
 calendarGrid.addEventListener('click', async (e) => {
   const deleteBtn = e.target.closest('.cal-item-delete');
   if (deleteBtn) {
@@ -470,9 +741,7 @@ calendarGrid.addEventListener('click', async (e) => {
     try {
       setSync('Deleting...');
       await api('/api/planner/items/delete', { method: 'POST', body: JSON.stringify({ id }) });
-      const scrollPos = { grid: document.querySelector(".rolling-grid")?.scrollTop || 0, window: window.scrollY };// debug removed
-      await loadTasks();
-      if(document.querySelector(".rolling-grid")) document.querySelector(".rolling-grid").scrollTop = scrollPos.grid; window.scrollTo(0, scrollPos.window);// debug removed
+      await refreshAfterMutation();
     } catch (err) {
       setSync(err.message || 'Delete error', false);
     }
@@ -484,21 +753,18 @@ calendarGrid.addEventListener('click', async (e) => {
     e.preventDefault();
     e.stopPropagation();
     const id = taskChip.getAttribute('data-drag-task-id') || '';
-    const existing = tasks.find(t => String(t.id) === String(id));
+    const existing = tasks.find((task) => String(task.id) === String(id));
     if (!existing) return;
 
     const next = await taskEditorModal(existing);
     if (next == null) return;
 
-    // Handle delete
     if (next.delete) {
       if (!await confirmDelete()) return;
       try {
         setSync('Deleting...');
         await api('/api/planner/items/delete', { method: 'POST', body: JSON.stringify({ id: existing.id }) });
-        const scrollPos = { grid: document.querySelector(".rolling-grid")?.scrollTop || 0, window: window.scrollY };// debug removed
-        await loadTasks();
-        if(document.querySelector(".rolling-grid")) document.querySelector(".rolling-grid").scrollTop = scrollPos.grid; window.scrollTo(0, scrollPos.window);// debug removed
+        await refreshAfterMutation();
       } catch (err) {
         setSync(err.message || 'Delete error', false);
       }
@@ -520,23 +786,17 @@ calendarGrid.addEventListener('click', async (e) => {
           dueDate: existing.due_date || null,
           dueTime: next.dueTime ?? existing.due_time ?? null,
           status: existing.status || 'open',
-          source: existing.source || 'lookahead-app'
+          source: existing.source || 'lookahead-app',
+          ...categoryMeta(next.categoryId || existing.categoryId || DEFAULT_CATEGORY_ID)
         })
       });
       setTaskNotes(existing.id, next.notes || '');
-      const scrollPos = { grid: document.querySelector(".rolling-grid")?.scrollTop || 0, window: window.scrollY };// debug removed
-      await loadTasks();
-      if(document.querySelector(".rolling-grid")) document.querySelector(".rolling-grid").scrollTop = scrollPos.grid; window.scrollTo(0, scrollPos.window);// debug removed
+      await refreshAfterMutation();
     } catch (err) {
       setSync(err.message || 'Sync error', false);
     }
     return;
   }
-
-  const cell = e.target.closest('.cal-day[data-date]');
-  if (!cell) return;
-  const ymd = cell.getAttribute('data-date') || '';
-  if (!ymd) return;
 });
 
 calendarGrid.addEventListener('dragstart', (e) => {
@@ -563,21 +823,30 @@ async function openCreateTaskModalForDay(ymd) {
     title: 'New Task',
     message: `Create a task for ${ymd}:`,
     initialValue: '',
-    saveLabel: 'Create'
+    saveLabel: 'Create',
+    showCategory: true,
+    selectedCategoryId: DEFAULT_CATEGORY_ID
   });
   if (next == null) return;
   const title = String(typeof next === 'string' ? next : next.title || '').trim();
   const dueTime = formatMilitaryTime(typeof next === 'object' ? next.dueTime : '') || null;
+  const nextCategoryId = typeof next === 'object' ? next.categoryId : DEFAULT_CATEGORY_ID;
   if (!title) return;
   try {
     setSync('Syncing…');
     await api('/api/planner/items', {
       method: 'POST',
-      body: JSON.stringify({ userId: USER_ID, kind: 'task', title, dueDate: ymd, dueTime, source: 'lookahead-app' })
+      body: JSON.stringify({
+        userId: USER_ID,
+        kind: 'task',
+        title,
+        dueDate: ymd,
+        dueTime,
+        source: 'lookahead-app',
+        ...categoryMeta(nextCategoryId)
+      })
     });
-    const scrollPos = { grid: document.querySelector(".rolling-grid")?.scrollTop || 0, window: window.scrollY };// debug removed
-    await loadTasks();
-    if(document.querySelector(".rolling-grid")) document.querySelector(".rolling-grid").scrollTop = scrollPos.grid; window.scrollTo(0, scrollPos.window);// debug removed
+    await refreshAfterMutation();
   } catch (err) {
     setSync(err.message || 'Sync error', false);
   }
@@ -622,9 +891,7 @@ calendarGrid.addEventListener('drop', async (e) => {
   try {
     setSync('Syncing…');
     await api('/api/planner/items/reschedule', { method: 'POST', body: JSON.stringify({ id, dueDate: ymd }) });
-    const scrollPos = { grid: document.querySelector(".rolling-grid")?.scrollTop || 0, window: window.scrollY };// debug removed
-    await loadTasks();
-    if(document.querySelector(".rolling-grid")) document.querySelector(".rolling-grid").scrollTop = scrollPos.grid; window.scrollTo(0, scrollPos.window);// debug removed
+    await refreshAfterMutation();
   } catch (err) {
     setSync(err.message || 'Sync error', false);
   }
@@ -652,5 +919,5 @@ if (taskList) {
 
 loadTasks().catch((err) => {
   setSync(err?.message || 'Network error when attempting to fetch resource', false);
-  render(); // Still render the calendar even if API fails
+  render();
 });
