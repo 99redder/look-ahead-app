@@ -8,9 +8,10 @@ const CATEGORY_KIND = 'category';
 const DEFAULT_CATEGORY_ID = 'uncategorized';
 const DEFAULT_CATEGORY_COLOR = '#39ff14';
 const CATEGORY_COLORS = [
-  '#39ff14', '#00f5d4', '#00e5ff', '#38b6ff',
-  '#6a5cff', '#b517ff', '#ff2bd6', '#ff4d6d',
-  '#ff6b00', '#ff9f1c', '#ffd60a', '#c6ff00'
+  '#39ff14', '#ffffff', '#ff0033', '#00f5d4',
+  '#00e5ff', '#38b6ff', '#6a5cff', '#b517ff',
+  '#ff2bd6', '#ff4d6d', '#ff6b00', '#ff9f1c',
+  '#ffd60a', '#c6ff00'
 ];
 
 const app = document.getElementById('app');
