@@ -303,7 +303,7 @@ function renderCalendar() {
   const startMonth = start.getMonth();
   const startDay = start.getDate();
 
-  const daysToShow = focusMode ? 7 : 28;
+  const daysToShow = focusMode ? 7 : 42;
 
   // Format date explicitly using local time
   const dateFormatter = new Intl.DateTimeFormat('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
@@ -441,14 +441,14 @@ if (taskList) {
 
 calPrev.addEventListener('click', () => {
   const currentWeekStart = startOfWeek(localDayAnchor());
-  const step = focusMode ? 7 : 56;
+  const step = focusMode ? 7 : 42;
   const prev = new Date(calCursor.getFullYear(), calCursor.getMonth(), calCursor.getDate() - step, 12, 0, 0, 0);
   calCursor = prev < currentWeekStart ? currentWeekStart : prev;
   renderCalendar();
 });
 
 calNext.addEventListener('click', () => {
-  const step = focusMode ? 7 : 56;
+  const step = focusMode ? 7 : 42;
   calCursor = new Date(calCursor.getFullYear(), calCursor.getMonth(), calCursor.getDate() + step, 12, 0, 0, 0);
   renderCalendar();
 });
