@@ -269,6 +269,8 @@ function normalizeTask(item = {}) {
       || task.source_id
       || DEFAULT_CATEGORY_ID
   );
+  task.categoryName = String(task.categoryName || task.category_name || '').trim();
+  task.categoryColor = normalizeHexColor(task.categoryColor || task.category_color || '', DEFAULT_CATEGORY_COLOR);
   return task;
 }
 
@@ -280,7 +282,16 @@ function getCategoryById(categoryId) {
 }
 
 function getTaskCategory(task) {
-  return getCategoryById(task?.categoryId || DEFAULT_CATEGORY_ID);
+  const category = getCategoryById(task?.categoryId || DEFAULT_CATEGORY_ID);
+  const taskCategoryName = String(task?.categoryName || task?.category_name || '').trim();
+  const taskCategoryColor = String(task?.categoryColor || task?.category_color || '').trim();
+  if (!taskCategoryName && !taskCategoryColor) return category;
+  return {
+    ...category,
+    name: taskCategoryName || category.name,
+    title: taskCategoryName || category.title,
+    color: normalizeHexColor(taskCategoryColor || category.color, DEFAULT_CATEGORY_COLOR)
+  };
 }
 
 function getTaskChipStyle(task) {
@@ -549,6 +560,7 @@ async function saveCategory(category) {
   const name = String(category?.name || '').trim();
   if (!name) throw new Error('Category name is required');
   const id = category?.id || '';
+  const color = normalizeHexColor(category?.color);
   const categoryId = categoryIdForName(name, String(id).replace(/^category:/, '') || category?.categoryId);
   await api('/api/planner/items', {
     method: 'POST',
@@ -557,8 +569,10 @@ async function saveCategory(category) {
       userId: USER_ID,
       kind: CATEGORY_KIND,
       title: name,
-      notes: normalizeHexColor(category?.color),
+      notes: color,
       categoryId,
+      categoryName: name,
+      categoryColor: color,
       dueDate: null,
       dueTime: null,
       status: 'open',
@@ -892,6 +906,7 @@ calendarGrid.addEventListener('click', async (e) => {
           title,
           dueDate: existing.due_date || null,
           dueTime: next.dueTime ?? existing.due_time ?? null,
+          notes: existing.notes ?? null,
           status: existing.status || 'open',
           source: existing.source || 'lookahead-app',
           ...categoryMeta(next.categoryId || existing.categoryId || DEFAULT_CATEGORY_ID)

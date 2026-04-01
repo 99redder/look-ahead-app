@@ -123,6 +123,7 @@ async function handleSaveItem(request, env, corsHeaders, url) {
   const categoryName = data.categoryName || null;
   const categoryColor = data.categoryColor || null;
   const itemId = data.id;
+  const isCategory = String(kind).toLowerCase() === 'category';
 
   if (!userId || !title) {
     return json({ ok: false, error: 'Missing userId or title' }, 400, corsHeaders);
@@ -133,6 +134,19 @@ async function handleSaveItem(request, env, corsHeaders, url) {
     await env.DB.prepare(
       `UPDATE planner_items SET title = ?1, due_date = ?2, due_time = ?3, status = ?4, notes = ?5, source = ?6, category_id = ?7, category_name = ?8, category_color = ?9, updated_at = datetime('now') WHERE id = ?10 AND user_id = ?11`
     ).bind(title, dueDate, dueTime, status, notes, source, categoryId, categoryName, categoryColor, itemId, userId).run();
+
+    if (isCategory && categoryId) {
+      await env.DB.prepare(
+        `UPDATE planner_items
+           SET category_name = ?1,
+               category_color = ?2,
+               updated_at = datetime('now')
+         WHERE user_id = ?3
+           AND kind != 'category'
+           AND category_id = ?4`
+      ).bind(title, categoryColor || notes || null, userId, categoryId).run();
+    }
+
     return json({ ok: true, id: itemId }, 200, corsHeaders);
   } else {
     // Create new
@@ -140,6 +154,19 @@ async function handleSaveItem(request, env, corsHeaders, url) {
       `INSERT INTO planner_items (user_id, kind, title, due_date, due_time, status, notes, source, category_id, category_name, category_color) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)`
     ).bind(userId, kind, title, dueDate, dueTime, status, notes, source, categoryId, categoryName, categoryColor).run();
     const id = result.meta?.last_row_id;
+
+    if (isCategory && categoryId) {
+      await env.DB.prepare(
+        `UPDATE planner_items
+           SET category_name = ?1,
+               category_color = ?2,
+               updated_at = datetime('now')
+         WHERE user_id = ?3
+           AND kind != 'category'
+           AND category_id = ?4`
+      ).bind(title, categoryColor || notes || null, userId, categoryId).run();
+    }
+
     return json({ ok: true, id: Number(id) }, 200, corsHeaders);
   }
 }
