@@ -41,11 +41,11 @@ button:hover { border-color: var(--pink); color: var(--pink); }
 .modal-notes{width:100%;margin-top:8px;background:#0b120d;color:var(--text);border:1px solid #24522b;border-radius:8px;padding:10px;resize:vertical;font-family:inherit}
 .modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:10px}
 
-.category-bar{margin:0;padding:8px 7px;border:1px solid #214526;border-radius:10px;background:#050805}
+.category-bar{margin:0;padding:4px 7px;border:1px solid #214526;border-radius:10px;background:#050805}
 .category-bar-inline{margin:0;min-width:0;grid-column:2/3}
 
-.category-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
-.category-chip{display:flex;align-items:center;justify-content:center;padding:8px 12px;border-radius:999px;color:#000;font-weight:700;font-size:16px;line-height:1.1;width:100%;border:none;box-shadow:inset 0 0 0 1px rgba(255,255,255,.12)}
+.category-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}
+.category-chip{display:flex;align-items:center;justify-content:center;padding:5px 8px;border-radius:999px;color:#000;font-weight:700;font-size:14px;line-height:1.1;width:100%;border:none;box-shadow:inset 0 0 0 1px rgba(255,255,255,.12)}
 .category-chip-default{background:#7dff63;color:#000}
 .calendar-head{display:flex;justify-content:flex-end;align-items:center;gap:10px;margin:4px 0 8px}
 .cal-nav{display:flex;align-items:center;gap:8px}
