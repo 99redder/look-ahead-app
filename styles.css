@@ -94,14 +94,20 @@ button:hover { border-color: var(--pink); color: var(--pink); }
   flex-direction: column;
 }
 .focus-today .cal-day {
-  flex: 1;
-  min-height: 500px;
+  flex: 1 1 auto;
+  min-height: auto;
+  max-height: 40vh;
 }
 .focus-remaining {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   grid-template-rows: repeat(2, 1fr);
   gap: 8px;
+}
+.focus-remaining .cal-day {
+  flex: 1;
+  min-height: auto;
+  max-height: 28vh;
 }
 .cal-day-header {
   font-size: 11px;
