@@ -654,12 +654,15 @@ function renderCalendar() {
   const startMonth = start.getMonth();
   const startDay = start.getDate();
   const daysToShow = focusMode ? 7 : 42;
-  const dateFormatter = new Intl.DateTimeFormat('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-  const startLabel = dateFormatter.format(start);
 
-  if (focusMode) {
-    calLabel.textContent = `Showing: ${startLabel}`;
-  } else {
+  // Hide navigation in focus mode, show in expand mode
+  calPrev.style.display = focusMode ? 'none' : 'inline-block';
+  calLabel.style.display = focusMode ? 'none' : 'block';
+  calNext.style.display = focusMode ? 'none' : 'inline-block';
+
+  if (!focusMode) {
+    const dateFormatter = new Intl.DateTimeFormat('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+    const startLabel = dateFormatter.format(start);
     const endDate = new Date(startYear, startMonth, startDay + (daysToShow - 1), 12, 0, 0, 0);
     const endLabel = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(endDate);
     calLabel.textContent = `${startLabel} – ${endLabel}`;
