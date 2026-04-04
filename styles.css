@@ -23,7 +23,7 @@ button:hover { border-color: var(--pink); color: var(--pink); }
 .brand-block{display:grid;grid-template-columns:auto minmax(0,1fr);grid-template-rows:auto auto;align-items:center;gap:8px;min-width:0;flex:1 1 auto}
 .brand{display:flex;align-items:center;margin:0;flex:0 0 auto;grid-column:1/2}
 .brand-logo{height:38px;width:auto;display:block}
-.focus-toggle{margin-top:0;flex:0 0 auto;padding:2px 4px;font-size:7px;line-height:1;width:40px;text-align:center;grid-column:1/2}
+.focus-toggle{margin-top:0;flex:0 0 auto;padding:4px 8px;font-size:14px;line-height:1.2;width:80px;text-align:center;grid-column:1/2}
 .sync-pill { border: 1px solid var(--line); border-radius: 999px; padding: 2px 8px; font-size: 11px; color: var(--muted); white-space:nowrap; }
 .header-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex:0 0 auto; align-self:flex-start; }
 
