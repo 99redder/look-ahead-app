@@ -630,8 +630,7 @@ function renderCategories() {
   if (!categoryList) return;
   ensureDefaultCategory();
   categoryList.innerHTML = categories.map((category) => `
-    <button class="category-chip${category.categoryId === DEFAULT_CATEGORY_ID ? ' category-chip-default' : ''}" data-category-id="${escapeHtml(category.categoryId)}" type="button">
-      <span class="category-dot" style="background:${escapeHtml(normalizeHexColor(category.color))};"></span>
+    <button class="category-chip" style="background:${escapeHtml(normalizeHexColor(category.color))};" data-category-id="${escapeHtml(category.categoryId)}" type="button">
       <span>${escapeHtml(category.name)}</span>
     </button>
   `).join('');
