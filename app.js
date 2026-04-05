@@ -684,7 +684,8 @@ function renderCalendar() {
       const timeline = isToday
         ? dayItems.map((task) => {
           const time = formatMilitaryTime(task.due_time);
-          return `<div class="focus-time-item ${task.status === 'done' ? 'done' : ''}" style="background:linear-gradient(to right, #0b120d 66%, ${escapeHtml(getTaskCategory(task).color)} 66%)"><span class="focus-time">${escapeHtml(time || '')}</span><span class="focus-time-title">${escapeHtml(task.title)}</span></div>`;
+          const color = getTaskCategory(task).color;
+          return `<div class="focus-time-item ${task.status === 'done' ? 'done' : ''}" style="background:linear-gradient(to right, #0b120d calc(100% - 33%), ${color} calc(100% - 33%))"><span class="focus-time">${escapeHtml(time || '')}</span><span class="focus-time-title">${escapeHtml(task.title)}</span></div>`;
         }).join('') || '<div class="empty-state">No tasks for this day</div>'
         : `${html}${more}`;
       const dayContent = `
