@@ -682,7 +682,10 @@ function renderCalendar() {
       const more = dayItems.length > 8 ? `<div class="cal-item cal-item-more">+${dayItems.length - 8} more</div>` : '';
       const isToday = key === todayKey;
       const timeline = isToday
-        ? dayItems.map((task) => `<div class="focus-time-item ${task.status === 'done' ? 'done' : ''}" style="border-left:4px solid ${escapeHtml(getTaskCategory(task).color)}"><span class="focus-time">${escapeHtml(formatMilitaryTime(task.due_time) || 'UNSET')}</span><span class="focus-time-title">${escapeHtml(task.title)}</span></div>`).join('') || '<div class="empty-state">No tasks for this day</div>'
+        ? dayItems.map((task) => {
+          const time = formatMilitaryTime(task.due_time);
+          return `<div class="focus-time-item ${task.status === 'done' ? 'done' : ''}" style="background:linear-gradient(to right, ${escapeHtml(getTaskCategory(task).color)} 66%, #0b120d 66%)"><span class="focus-time">${escapeHtml(time || '')}</span><span class="focus-time-title">${escapeHtml(task.title)}</span></div>`;
+        }).join('') || '<div class="empty-state">No tasks for this day</div>'
         : `${html}${more}`;
       const dayContent = `
         <div class="cal-day ${isToday ? 'today' : ''}" data-date="${key}">
