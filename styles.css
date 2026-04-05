@@ -96,7 +96,7 @@ button:hover { border-color: var(--pink); color: var(--pink); }
 .focus-today .cal-day {
   flex: 1 1 auto;
   min-height: auto;
-  max-height: 50vh;
+  max-height: 58vh;
 }
 .focus-remaining {
   display: grid;
@@ -107,7 +107,7 @@ button:hover { border-color: var(--pink); color: var(--pink); }
 .focus-remaining .cal-day {
   flex: 1;
   min-height: auto;
-  max-height: 32vh;
+  max-height: 38vh;
 }
 .cal-day-header {
   font-size: 11px;
