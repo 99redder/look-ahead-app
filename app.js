@@ -815,7 +815,7 @@ calNext.addEventListener('click', () => {
 
 document.getElementById('cal-focus').addEventListener('click', () => {
   focusMode = !focusMode;
-  document.getElementById('cal-focus').textContent = focusMode ? 'EXPAND' : 'FOCUS';
+  document.getElementById('cal-focus').textContent = focusMode ? 'EXPAND' : 'WEEK FOCUS';
   renderCalendar();
 });
 
