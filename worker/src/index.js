@@ -80,6 +80,17 @@ function json(payload, status = 200, headers = {}) {
   });
 }
 
+// Test whether category columns (category_id etc.) exist in the table.
+// Uses a LIMIT 0 query — no rows fetched, just schema validation.
+async function hasCategoryColumns(env) {
+  try {
+    await env.DB.prepare('SELECT category_id FROM planner_items LIMIT 0').all();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 // GET /api/planner/items?userId=xxx&includeDone=1
 async function handleGetItems(request, env, corsHeaders, url) {
   if (!env.DB) return json({ ok: false, error: 'DB not bound' }, 500, corsHeaders);
@@ -88,14 +99,18 @@ async function handleGetItems(request, env, corsHeaders, url) {
   if (!userId) return json({ ok: false, error: 'Missing userId' }, 400, corsHeaders);
 
   const includeDone = url.searchParams.get('includeDone') === '1';
+  const statusClause = includeDone ? '' : " AND status = 'open'";
+  const orderClause = " ORDER BY due_date ASC, COALESCE(due_time, '9999') ASC, id DESC";
 
-  let query = 'SELECT id, user_id, kind, title, due_date, due_time, status, notes, source, category_id, category_name, category_color, created_at FROM planner_items WHERE user_id = ?1';
-  if (!includeDone) {
-    query += " AND status = 'open'";
-  }
-  query += " ORDER BY due_date ASC, COALESCE(due_time, '9999') ASC, id DESC";
+  const hasCategories = await hasCategoryColumns(env);
 
-  const result = await env.DB.prepare(query).bind(userId).all();
+  const cols = hasCategories
+    ? 'id, user_id, kind, title, due_date, due_time, status, notes, source, category_id, category_name, category_color, created_at'
+    : "id, user_id, kind, title, due_date, due_time, status, notes, source, NULL as category_id, NULL as category_name, NULL as category_color, created_at";
+
+  const result = await env.DB.prepare(
+    `SELECT ${cols} FROM planner_items WHERE user_id = ?1${statusClause}${orderClause}`
+  ).bind(userId).all();
 
   return json({ ok: true, items: result.results || [] }, 200, corsHeaders);
 }
@@ -129,44 +144,46 @@ async function handleSaveItem(request, env, corsHeaders, url) {
     return json({ ok: false, error: 'Missing userId or title' }, 400, corsHeaders);
   }
 
+  const hasCategories = await hasCategoryColumns(env);
+
   if (itemId) {
     // Update existing
-    await env.DB.prepare(
-      `UPDATE planner_items SET title = ?1, due_date = ?2, due_time = ?3, status = ?4, notes = ?5, source = ?6, category_id = ?7, category_name = ?8, category_color = ?9, updated_at = datetime('now') WHERE id = ?10 AND user_id = ?11`
-    ).bind(title, dueDate, dueTime, status, notes, source, categoryId, categoryName, categoryColor, itemId, userId).run();
-
-    if (isCategory && categoryId) {
+    if (hasCategories) {
       await env.DB.prepare(
-        `UPDATE planner_items
-           SET category_name = ?1,
-               category_color = ?2,
-               updated_at = datetime('now')
-         WHERE user_id = ?3
-           AND kind != 'category'
-           AND category_id = ?4`
-      ).bind(title, categoryColor || notes || null, userId, categoryId).run();
-    }
+        `UPDATE planner_items SET title = ?1, due_date = ?2, due_time = ?3, status = ?4, notes = ?5, source = ?6, category_id = ?7, category_name = ?8, category_color = ?9, updated_at = datetime('now') WHERE id = ?10 AND user_id = ?11`
+      ).bind(title, dueDate, dueTime, status, notes, source, categoryId, categoryName, categoryColor, itemId, userId).run();
 
+      if (isCategory && categoryId) {
+        await env.DB.prepare(
+          `UPDATE planner_items SET category_name = ?1, category_color = ?2, updated_at = datetime('now') WHERE user_id = ?3 AND kind != 'category' AND category_id = ?4`
+        ).bind(title, categoryColor || notes || null, userId, categoryId).run();
+      }
+    } else {
+      await env.DB.prepare(
+        `UPDATE planner_items SET title = ?1, due_date = ?2, due_time = ?3, status = ?4, notes = ?5, source = ?6, updated_at = datetime('now') WHERE id = ?7 AND user_id = ?8`
+      ).bind(title, dueDate, dueTime, status, notes, source, itemId, userId).run();
+    }
     return json({ ok: true, id: itemId }, 200, corsHeaders);
   } else {
     // Create new
-    const result = await env.DB.prepare(
-      `INSERT INTO planner_items (user_id, kind, title, due_date, due_time, status, notes, source, category_id, category_name, category_color) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)`
-    ).bind(userId, kind, title, dueDate, dueTime, status, notes, source, categoryId, categoryName, categoryColor).run();
-    const id = result.meta?.last_row_id;
+    let id;
+    if (hasCategories) {
+      const result = await env.DB.prepare(
+        `INSERT INTO planner_items (user_id, kind, title, due_date, due_time, status, notes, source, category_id, category_name, category_color) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)`
+      ).bind(userId, kind, title, dueDate, dueTime, status, notes, source, categoryId, categoryName, categoryColor).run();
+      id = result.meta?.last_row_id;
 
-    if (isCategory && categoryId) {
-      await env.DB.prepare(
-        `UPDATE planner_items
-           SET category_name = ?1,
-               category_color = ?2,
-               updated_at = datetime('now')
-         WHERE user_id = ?3
-           AND kind != 'category'
-           AND category_id = ?4`
-      ).bind(title, categoryColor || notes || null, userId, categoryId).run();
+      if (isCategory && categoryId) {
+        await env.DB.prepare(
+          `UPDATE planner_items SET category_name = ?1, category_color = ?2, updated_at = datetime('now') WHERE user_id = ?3 AND kind != 'category' AND category_id = ?4`
+        ).bind(title, categoryColor || notes || null, userId, categoryId).run();
+      }
+    } else {
+      const result = await env.DB.prepare(
+        `INSERT INTO planner_items (user_id, kind, title, due_date, due_time, status, notes, source) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)`
+      ).bind(userId, kind, title, dueDate, dueTime, status, notes, source).run();
+      id = result.meta?.last_row_id;
     }
-
     return json({ ok: true, id: Number(id) }, 200, corsHeaders);
   }
 }
@@ -185,12 +202,11 @@ async function handleToggleItem(request, env, corsHeaders, url) {
   const id = data.id;
   if (!id) return json({ ok: false, error: 'Missing id' }, 400, corsHeaders);
 
-  // Get current status
   const existing = await env.DB.prepare('SELECT status FROM planner_items WHERE id = ?1').bind(id).first();
   if (!existing) return json({ ok: false, error: 'Item not found' }, 404, corsHeaders);
 
   const newStatus = existing.status === 'done' ? 'open' : 'done';
-  await env.DB.prepare('UPDATE planner_items SET status = ?1, updated_at = datetime(\'now\') WHERE id = ?2').bind(newStatus, id).run();
+  await env.DB.prepare("UPDATE planner_items SET status = ?1, updated_at = datetime('now') WHERE id = ?2").bind(newStatus, id).run();
 
   return json({ ok: true, status: newStatus }, 200, corsHeaders);
 }
@@ -230,7 +246,7 @@ async function handleRescheduleItem(request, env, corsHeaders, url) {
 
   if (!id) return json({ ok: false, error: 'Missing id' }, 400, corsHeaders);
 
-  await env.DB.prepare('UPDATE planner_items SET due_date = ?1, updated_at = datetime(\'now\') WHERE id = ?2').bind(dueDate, id).run();
+  await env.DB.prepare("UPDATE planner_items SET due_date = ?1, updated_at = datetime('now') WHERE id = ?2").bind(dueDate, id).run();
 
   return json({ ok: true }, 200, corsHeaders);
 }

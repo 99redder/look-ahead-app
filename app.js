@@ -1055,7 +1055,7 @@ if (taskList) {
 }
 
 // Work List Modal
-function renderWorkList(editingTaskId = null) {
+function renderWorkList(editingTaskId = null, newSlotInfo = null) {
   if (!workListContent) return;
   
   // Get unscheduled tasks (tasks without a due_date)
@@ -1174,41 +1174,15 @@ function wireWorkListEvents() {
     } else if (addBtn) {
       e.stopPropagation();
       const taskId = addBtn.getAttribute('data-add-id');
-      const task = tasks.find((t) => t.id === taskId);
+      const task = tasks.find((t) => String(t.id) === String(taskId));
       if (task) {
-        // Add to today with time prompt
-        const today = localDayAnchor().toISOString().split('T')[0];
-        const next = await promptModal({
-          title: `Add to ${today}`,
-          message: `Schedule "${task.title}" for today. Adjust time if needed.`,
-          initialValue: task.title,
-          saveLabel: 'Add',
-          showCategory: true,
-          showTime: true,
-          selectedCategoryId: task.categoryId
-        });
-        if (next == null) return;
-        
-        const title = (typeof next === 'string' ? next : next.title || task.title).trim();
-        const dueTime = formatMilitaryTime(typeof next === 'object' ? next.dueTime : '') || null;
-        const nextCategoryId = typeof next === 'object' ? next.categoryId : task.categoryId;
-        
-        // Create new task for today
+        // Reschedule the existing task to today — moves it off the work list
         try {
           setSync('Syncing…');
-          await api('/api/planner/items', {
+          await api('/api/planner/items/reschedule', {
             method: 'POST',
-            body: JSON.stringify({
-              userId: USER_ID,
-              kind: 'task',
-              title,
-              dueDate: today,
-              dueTime,
-              source: 'lookahead-app',
-              ...categoryMeta(nextCategoryId)
-            })
+            body: JSON.stringify({ id: task.id, dueDate: ymdToday() })
           });
-          // Keep original task unscheduled (user can delete if desired)
           await refreshAfterMutation();
           renderWorkList();
         } catch (err) {
