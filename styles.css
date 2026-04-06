@@ -145,6 +145,8 @@ button:hover { border-color: var(--pink); color: var(--pink); }
 .work-list-slot .slot-actions button:hover{opacity:1}
 .work-list-slot .slot-delete{color:#ff9b9b}
 .work-list-slot .slot-add{color:#39ff14;font-weight:700;font-size:16px}
+.work-list-slot .slot-edit-input{width:100%;background:#1a2a1f;border:1px solid #39ff14;border-radius:4px;padding:4px 8px;color:#d8dce8;font-size:13px;outline:none}
+.work-list-slot .slot-edit-input:focus{border-color:#7dff63}
 
 @media (max-width: 1100px){
   .top-main{flex-direction:column;align-items:stretch}

@@ -1055,7 +1055,7 @@ if (taskList) {
 }
 
 // Work List Modal
-function renderWorkList() {
+function renderWorkList(editingTaskId = null) {
   if (!workListContent) return;
   
   // Get unscheduled tasks (tasks without a due_date)
@@ -1088,18 +1088,34 @@ function renderWorkList() {
     for (let i = 0; i < 10; i++) {
       const task = catTasks[i] || null;
       if (task) {
-        html += `<div class="work-list-slot has-task" data-task-id="${task.id}" data-category-id="${cat.categoryId}">
-          <div class="slot-actions left">
-            <button class="slot-add" data-add-id="${task.id}" title="Add to Today">+</button>
-          </div>
-          <div class="slot-content">
-            <div class="slot-time">${escapeHtml(formatMilitaryTime(task.due_time))}</div>
-            <div class="slot-title">${escapeHtml(task.title)}</div>
-          </div>
-          <div class="slot-actions right">
-            <button class="slot-delete" data-delete-id="${task.id}" title="Delete">×</button>
-          </div>
-        </div>`;
+        const isEditing = editingTaskId === task.id;
+        if (isEditing) {
+          // Show inline edit mode
+          html += `<div class="work-list-slot has-task editing" data-task-id="${task.id}" data-category-id="${cat.categoryId}">
+            <div class="slot-actions left">
+              <button class="slot-add" data-add-id="${task.id}" title="Add to Today" style="visibility:hidden">+</button>
+            </div>
+            <div class="slot-content">
+              <input type="text" class="slot-edit-input" value="${escapeHtml(task.title)}" data-edit-id="${task.id}" placeholder="Task name..." />
+            </div>
+            <div class="slot-actions right">
+              <button class="slot-delete" data-delete-id="${task.id}" title="Delete">×</button>
+            </div>
+          </div>`;
+        } else {
+          // Show normal view with + and × buttons
+          html += `<div class="work-list-slot has-task" data-task-id="${task.id}" data-category-id="${cat.categoryId}">
+            <div class="slot-actions left">
+              <button class="slot-add" data-add-id="${task.id}" title="Add to Today">+</button>
+            </div>
+            <div class="slot-content">
+              <div class="slot-title" data-click-edit="${task.id}">${escapeHtml(task.title)}</div>
+            </div>
+            <div class="slot-actions right">
+              <button class="slot-delete" data-delete-id="${task.id}" title="Delete">×</button>
+            </div>
+          </div>`;
+        }
       } else {
         html += `<div class="work-list-slot" data-slot-category="${cat.categoryId}" data-slot-index="${i}" title="Click to add task here"></div>`;
       }
@@ -1120,6 +1136,7 @@ function wireWorkListEvents() {
     
     const deleteBtn = e.target.closest('.slot-delete');
     const addBtn = e.target.closest('.slot-add');
+    const titleEl = e.target.closest('.slot-title[data-click-edit]');
     
     if (deleteBtn) {
       e.stopPropagation();
@@ -1182,8 +1199,24 @@ function wireWorkListEvents() {
           setSync(err.message || 'Sync error', false);
         }
       }
+    } else if (titleEl) {
+      // Clicked on task title - enter inline edit mode
+      e.stopPropagation();
+      const taskId = titleEl.getAttribute('data-click-edit');
+      renderWorkList(taskId);
+      // Focus the input after render
+      setTimeout(() => {
+        const input = workListContent.querySelector('.slot-edit-input');
+        if (input) {
+          input.focus();
+          input.select();
+        }
+      }, 10);
+    } else if (!deleteBtn && !addBtn && slot.classList.contains('has-task')) {
+      // Clicked on an empty area of a task slot (not buttons) - do nothing
+      return;
     } else if (!deleteBtn && !addBtn) {
-      // Clicked on the slot itself - add new task
+      // Clicked on an empty slot - add new task
       const categoryId = slot.getAttribute('data-slot-category') || DEFAULT_CATEGORY_ID;
       const next = await promptModal({
         title: 'New Task',
@@ -1226,6 +1259,81 @@ Click OK to add to Today, then edit details.`,
       }
     }
   });
+  
+  // Handle inline edit input
+  workListContent.addEventListener('keydown', async (e) => {
+    if (e.target.classList.contains('slot-edit-input')) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        const taskId = e.target.getAttribute('data-edit-id');
+        const newTitle = e.target.value.trim();
+        if (!newTitle) return;
+        
+        const task = tasks.find((t) => t.id === taskId);
+        if (!task) return;
+        
+        try {
+          setSync('Syncing…');
+          await api('/api/planner/items', {
+            method: 'POST',
+            body: JSON.stringify({
+              id: task.id,
+              userId: USER_ID,
+              kind: task.kind || 'task',
+              title: newTitle,
+              dueDate: task.due_date || null,
+              dueTime: task.due_time || null,
+              notes: task.notes || null,
+              status: task.status || 'open',
+              source: task.source || 'lookahead-app',
+              ...categoryMeta(task.categoryId || DEFAULT_CATEGORY_ID)
+            })
+          });
+          await refreshAfterMutation();
+          renderWorkList();
+        } catch (err) {
+          setSync(err.message || 'Sync error', false);
+        }
+      } else if (e.key === 'Escape') {
+        renderWorkList();
+      }
+    }
+  });
+  
+  // Handle blur to save
+  workListContent.addEventListener('blur', async (e) => {
+    if (e.target.classList.contains('slot-edit-input')) {
+      const taskId = e.target.getAttribute('data-edit-id');
+      const newTitle = e.target.value.trim();
+      if (!newTitle) return;
+      
+      const task = tasks.find((t) => t.id === taskId);
+      if (!task) return;
+      
+      try {
+        setSync('Syncing…');
+        await api('/api/planner/items', {
+          method: 'POST',
+          body: JSON.stringify({
+            id: task.id,
+            userId: USER_ID,
+            kind: task.kind || 'task',
+            title: newTitle,
+            dueDate: task.due_date || null,
+            dueTime: task.due_time || null,
+            notes: task.notes || null,
+            status: task.status || 'open',
+            source: task.source || 'lookahead-app',
+            ...categoryMeta(task.categoryId || DEFAULT_CATEGORY_ID)
+          })
+        });
+        await refreshAfterMutation();
+        renderWorkList();
+      } catch (err) {
+        setSync(err.message || 'Sync error', false);
+      }
+    }
+  }, true);
 }
 
 workListClose?.addEventListener('click', () => {
