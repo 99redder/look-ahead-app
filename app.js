@@ -1089,13 +1089,15 @@ function renderWorkList() {
       const task = catTasks[i] || null;
       if (task) {
         html += `<div class="work-list-slot has-task" data-task-id="${task.id}" data-category-id="${cat.categoryId}">
+          <div class="slot-actions left">
+            <button class="slot-add" data-add-id="${task.id}" title="Add to Today">+</button>
+          </div>
           <div class="slot-content">
             <div class="slot-time">${escapeHtml(formatMilitaryTime(task.due_time))}</div>
             <div class="slot-title">${escapeHtml(task.title)}</div>
           </div>
-          <div class="slot-actions">
+          <div class="slot-actions right">
             <button class="slot-delete" data-delete-id="${task.id}" title="Delete">×</button>
-            <button class="slot-add" data-add-id="${task.id}" title="Add to Today">+</button>
           </div>
         </div>`;
       } else {
