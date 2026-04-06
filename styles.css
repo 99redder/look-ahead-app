@@ -28,6 +28,7 @@ button:hover { border-color: var(--pink); color: var(--pink); }
 .header-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex:0 0 auto; align-self:flex-start; }
 
 .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.6);display:grid;place-items:center;z-index:2000}
+#delete-modal,#category-delete-modal{z-index:2100}
 .modal-card{width:min(720px,92vw);background:#081009;border:1px solid var(--line);border-radius:10px;padding:14px}
 .modal-title{margin:0 0 6px;color:var(--line)}
 .modal-message{margin:0 0 8px;color:var(--muted)}
