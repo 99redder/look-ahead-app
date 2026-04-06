@@ -11,7 +11,7 @@
   <link rel="apple-touch-icon" sizes="192x192" href="pwa-icon-192.png" />
   <link rel="apple-touch-icon" sizes="512x512" href="pwa-icon-512.png" />
   <link rel="manifest" href="manifest.json" />
-  <link rel="stylesheet" href="styles.css?v=202604060003" />
+  <link rel="stylesheet" href="styles.css?v=202604060004" />
 </head>
 <body>
   <div id="modal-backdrop" class="modal-backdrop" style="display:none;" aria-hidden="true">
@@ -112,11 +112,9 @@
       <h3 id="work-list-modal-title" class="modal-title">Work List</h3>
       <p id="work-list-modal-message" class="modal-message">Unscheduled tasks - click a slot to add or edit</p>
       <div class="work-list-sort-controls">
-        <label>Sort by:</label>
-        <select id="work-list-sort-select">
-          <option value="tasks"># of tasks</option>
-          <option value="alpha">Alphabetical</option>
-        </select>
+        <label>Sort:</label>
+        <button class="work-list-sort-btn active" id="work-list-sort-tasks" type="button"># of tasks</button>
+        <button class="work-list-sort-btn" id="work-list-sort-alpha" type="button">A–Z</button>
       </div>
       <div id="work-list-content" class="work-list-content" style="max-height:60vh;overflow-y:auto"></div>
       <div class="modal-actions">
@@ -125,6 +123,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=202604060004"></script>
+  <script src="app.js?v=202604060005"></script>
 </body>
 </html>

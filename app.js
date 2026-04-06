@@ -1072,9 +1072,7 @@ function renderWorkList(editingTaskId = null, newSlotInfo = null) {
     };
   });
 
-  // Get sort preference from select, default to 'tasks'
-  const sortSelect = document.getElementById('work-list-sort-select');
-  const sortBy = sortSelect ? sortSelect.value : 'tasks';
+  const sortBy = workListSortMode;
 
   // Sort categories
   const sortedCategories = Object.values(tasksByCategory).sort((a, b) => {
@@ -1336,13 +1334,20 @@ document.addEventListener('keydown', (e) => {
 // Wire work list events once at startup
 wireWorkListEvents();
 
-// Sort select change handler
-const workListSortSelect = document.getElementById('work-list-sort-select');
-if (workListSortSelect) {
-  workListSortSelect.addEventListener('change', () => {
-    renderWorkList();
-  });
+let workListSortMode = 'tasks';
+
+const workListSortTasksBtn = document.getElementById('work-list-sort-tasks');
+const workListSortAlphaBtn = document.getElementById('work-list-sort-alpha');
+
+function setWorkListSort(mode) {
+  workListSortMode = mode;
+  workListSortTasksBtn?.classList.toggle('active', mode === 'tasks');
+  workListSortAlphaBtn?.classList.toggle('active', mode === 'alpha');
+  renderWorkList();
 }
+
+workListSortTasksBtn?.addEventListener('click', () => setWorkListSort('tasks'));
+workListSortAlphaBtn?.addEventListener('click', () => setWorkListSort('alpha'));
 
 // Open work list modal from button
 calWorkList?.addEventListener('click', () => {

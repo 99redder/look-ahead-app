@@ -132,7 +132,8 @@ button:hover { border-color: var(--pink); color: var(--pink); }
 .work-list-content{max-height:60vh;overflow-y:auto}
 .work-list-sort-controls{display:flex;align-items:center;gap:8px;margin-bottom:8px}
 .work-list-sort-controls label{color:var(--muted);font-size:13px}
-.work-list-sort-controls select{padding:4px 8px;border:1px solid var(--line);border-radius:6px;background:#0b120d;color:var(--text);font-size:13px;cursor:pointer
+.work-list-sort-btn{padding:3px 10px;border-radius:999px;font-size:12px;border:1px solid #214526;background:transparent;color:var(--muted);cursor:pointer}
+.work-list-sort-btn.active{border-color:var(--line);color:var(--line);background:#0f2a12}
 .work-list-category{margin-bottom:16px;border:1px solid #214526;border-radius:8px;padding:10px;background:#0b120d}
 .work-list-category-header{display:flex;align-items:center;gap:8px;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid #214526}
 .category-color-swatch{width:14px;height:14px;border-radius:50%;flex:0 0 auto}
