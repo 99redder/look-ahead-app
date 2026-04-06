@@ -1055,13 +1055,13 @@ if (taskList) {
 }
 
 // Work List Modal
+const workListExpanded = new Set(); // categories expanded by user click
+
 function renderWorkList(editingTaskId = null, newSlotInfo = null) {
   if (!workListContent) return;
-  
-  // Get unscheduled tasks (tasks without a due_date)
+
   const unscheduledTasks = tasks.filter((task) => !task.due_date || task.due_date === '');
-  
-  // Group by category
+
   const tasksByCategory = {};
   categories.forEach((cat) => {
     tasksByCategory[cat.categoryId] = {
@@ -1069,26 +1069,28 @@ function renderWorkList(editingTaskId = null, newSlotInfo = null) {
       tasks: unscheduledTasks.filter((t) => t.categoryId === cat.categoryId)
     };
   });
-  
-  // Render each category section with 10 slots
+
   let html = '';
   Object.values(tasksByCategory).forEach((catData) => {
     const cat = catData.category;
     const catTasks = catData.tasks;
     const color = normalizeHexColor(cat.color, DEFAULT_CATEGORY_COLOR);
-    
+    const isExpanded = workListExpanded.has(cat.categoryId);
+    const chevron = isExpanded ? '▾' : '▸';
+
     html += `<div class="work-list-category" data-category-id="${escapeHtml(cat.categoryId)}">
-      <div class="work-list-category-header">
+      <div class="work-list-category-header" data-toggle-category="${escapeHtml(cat.categoryId)}" style="cursor:pointer;">
         <div class="category-color-swatch" style="background:${escapeHtml(color)};"></div>
         <div class="category-title">${escapeHtml(cat.name)}</div>
+        <span style="color:var(--muted);font-size:12px;margin-left:auto;">${catTasks.length} task${catTasks.length !== 1 ? 's' : ''} &nbsp;${chevron}</span>
       </div>
-      <div class="work-list-slots">`;
+      ${isExpanded ? `<div class="work-list-slots">` : `<div class="work-list-slots" style="display:none;">`}`;
     
     // Render 10 slots per category
     for (let i = 0; i < 10; i++) {
       const task = catTasks[i] || null;
       if (task) {
-        const isEditing = editingTaskId === task.id;
+        const isEditing = String(editingTaskId) === String(task.id);
         if (isEditing) {
           // Show inline edit mode
           html += `<div class="work-list-slot has-task editing" data-task-id="${task.id}" data-category-id="${cat.categoryId}">
@@ -1150,6 +1152,16 @@ function wireWorkListEvents() {
   workListEventsWired = true;
 
   workListContent.addEventListener('click', async (e) => {
+    // Category header toggle
+    const toggleHeader = e.target.closest('[data-toggle-category]');
+    if (toggleHeader) {
+      const catId = toggleHeader.getAttribute('data-toggle-category');
+      if (workListExpanded.has(catId)) workListExpanded.delete(catId);
+      else workListExpanded.add(catId);
+      renderWorkList();
+      return;
+    }
+
     const slot = e.target.closest('.work-list-slot');
     if (!slot) return;
 
