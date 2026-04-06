@@ -1143,21 +1143,24 @@ function renderWorkList(editingTaskId = null, newSlotInfo = null) {
   workListContent.innerHTML = html;
 }
 
+let workListEventsWired = false;
+
 function wireWorkListEvents() {
-  if (!workListContent) return;
-  
+  if (!workListContent || workListEventsWired) return;
+  workListEventsWired = true;
+
   workListContent.addEventListener('click', async (e) => {
     const slot = e.target.closest('.work-list-slot');
     if (!slot) return;
-    
+
     const deleteBtn = e.target.closest('.slot-delete');
     const addBtn = e.target.closest('.slot-add');
     const titleEl = e.target.closest('.slot-title[data-click-edit]');
-    
+
     if (deleteBtn) {
       e.stopPropagation();
       const taskId = deleteBtn.getAttribute('data-delete-id');
-      const task = tasks.find((t) => t.id === taskId);
+      const task = tasks.find((t) => String(t.id) === String(taskId));
       if (task) {
         const confirmed = await confirmDelete(`Delete "${task.title}"?`);
         if (confirmed) {
@@ -1176,7 +1179,6 @@ function wireWorkListEvents() {
       const taskId = addBtn.getAttribute('data-add-id');
       const task = tasks.find((t) => String(t.id) === String(taskId));
       if (task) {
-        // Reschedule the existing task to today — moves it off the work list
         try {
           setSync('Syncing…');
           await api('/api/planner/items/reschedule', {
@@ -1190,7 +1192,6 @@ function wireWorkListEvents() {
         }
       }
     } else if (titleEl) {
-      // Clicked on task title - enter inline edit mode
       e.stopPropagation();
       const taskId = titleEl.getAttribute('data-click-edit');
       renderWorkList(taskId);
@@ -1220,134 +1221,69 @@ function wireWorkListEvents() {
     }
   });
   
-  // Handle inline edit input
+  // Handle inline edit input — keydown only (no blur-save to prevent double-fire)
+  let workListSaving = false;
   workListContent.addEventListener('keydown', async (e) => {
-    if (e.target.classList.contains('slot-edit-input')) {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        const taskId = e.target.getAttribute('data-edit-id');
-        const newTaskCategory = e.target.getAttribute('data-new-slot-category');
-        
-        if (newTaskCategory) {
-          // Creating a new task
-          const newTitle = e.target.value.trim();
-          if (!newTitle) return;
-          
-          const today = localDayAnchor().toISOString().split('T')[0];
-          try {
-            setSync('Syncing…');
-            await api('/api/planner/items', {
-              method: 'POST',
-              body: JSON.stringify({
-                userId: USER_ID,
-                kind: 'task',
-                title: newTitle,
-                dueDate: null, // Work list tasks have no due date
-                source: 'lookahead-app',
-                ...categoryMeta(newTaskCategory)
-              })
-            });
-            await refreshAfterMutation();
-            renderWorkList();
-          } catch (err) {
-            setSync(err.message || 'Sync error', false);
-          }
-        } else if (taskId) {
-          // Editing existing task
-          const newTitle = e.target.value.trim();
-          if (!newTitle) return;
-          
-          const task = tasks.find((t) => t.id === taskId);
-          if (!task) return;
-          
-          try {
-            setSync('Syncing…');
-            await api('/api/planner/items', {
-              method: 'POST',
-              body: JSON.stringify({
-                id: task.id,
-                userId: USER_ID,
-                kind: task.kind || 'task',
-                title: newTitle,
-                dueDate: task.due_date || null,
-                dueTime: task.due_time || null,
-                notes: task.notes || null,
-                status: task.status || 'open',
-                source: task.source || 'lookahead-app',
-                ...categoryMeta(task.categoryId || DEFAULT_CATEGORY_ID)
-              })
-            });
-            await refreshAfterMutation();
-            renderWorkList();
-          } catch (err) {
-            setSync(err.message || 'Sync error', false);
-          }
-        }
-      } else if (e.key === 'Escape') {
-        renderWorkList();
+    if (!e.target.classList.contains('slot-edit-input')) return;
+
+    if (e.key === 'Escape') {
+      renderWorkList();
+      return;
+    }
+
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    if (workListSaving) return;
+
+    const taskId = e.target.getAttribute('data-edit-id');
+    const newTaskCategory = e.target.getAttribute('data-new-slot-category');
+    const newTitle = e.target.value.trim();
+    if (!newTitle) return;
+
+    workListSaving = true;
+    try {
+      setSync('Syncing…');
+      if (newTaskCategory) {
+        // Creating a new unscheduled task
+        await api('/api/planner/items', {
+          method: 'POST',
+          body: JSON.stringify({
+            userId: USER_ID,
+            kind: 'task',
+            title: newTitle,
+            dueDate: null,
+            source: 'lookahead-app',
+            ...categoryMeta(newTaskCategory)
+          })
+        });
+      } else if (taskId) {
+        // Saving an edited existing task
+        const task = tasks.find((t) => String(t.id) === String(taskId));
+        if (!task) return;
+        await api('/api/planner/items', {
+          method: 'POST',
+          body: JSON.stringify({
+            id: task.id,
+            userId: USER_ID,
+            kind: task.kind || 'task',
+            title: newTitle,
+            dueDate: task.due_date || null,
+            dueTime: task.due_time || null,
+            notes: task.notes || null,
+            status: task.status || 'open',
+            source: task.source || 'lookahead-app',
+            ...categoryMeta(task.categoryId || DEFAULT_CATEGORY_ID)
+          })
+        });
       }
+      await refreshAfterMutation();
+      renderWorkList();
+    } catch (err) {
+      setSync(err.message || 'Sync error', false);
+    } finally {
+      workListSaving = false;
     }
   });
-  
-  // Handle blur to save
-  workListContent.addEventListener('blur', async (e) => {
-    if (e.target.classList.contains('slot-edit-input')) {
-      const taskId = e.target.getAttribute('data-edit-id');
-      const newTaskCategory = e.target.getAttribute('data-new-slot-category');
-      const newTitle = e.target.value.trim();
-      
-      // Only save if there's a title
-      if (newTitle) {
-        if (newTaskCategory) {
-          // Creating new task
-          try {
-            setSync('Syncing…');
-            await api('/api/planner/items', {
-              method: 'POST',
-              body: JSON.stringify({
-                userId: USER_ID,
-                kind: 'task',
-                title: newTitle,
-                dueDate: null,
-                source: 'lookahead-app',
-                ...categoryMeta(newTaskCategory)
-              })
-            });
-            await refreshAfterMutation();
-          } catch (err) {
-            setSync(err.message || 'Sync error', false);
-          }
-        } else if (taskId) {
-          // Editing existing task
-          const task = tasks.find((t) => t.id === taskId);
-          if (task) {
-            try {
-              setSync('Syncing…');
-              await api('/api/planner/items', {
-                method: 'POST',
-                body: JSON.stringify({
-                  id: task.id,
-                  userId: USER_ID,
-                  kind: task.kind || 'task',
-                  title: newTitle,
-                  dueDate: task.due_date || null,
-                  dueTime: task.due_time || null,
-                  notes: task.notes || null,
-                  status: task.status || 'open',
-                  source: task.source || 'lookahead-app',
-                  ...categoryMeta(task.categoryId || DEFAULT_CATEGORY_ID)
-                })
-              });
-              await refreshAfterMutation();
-            } catch (err) {
-              setSync(err.message || 'Sync error', false);
-            }
-          }
-        }
-      }
-      renderWorkList();
-    }
-  }, true);
 }
 
 workListClose?.addEventListener('click', () => {
@@ -1369,14 +1305,12 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
+// Wire work list events once at startup
+wireWorkListEvents();
+
 // Open work list modal from button
 calWorkList?.addEventListener('click', () => {
-  // Hide the main prompt modal backdrop if open
-  modalBackdrop.style.display = 'none';
-  modalBackdrop.setAttribute('aria-hidden', 'true');
-  
   renderWorkList();
-  wireWorkListEvents();
   workListModal.style.display = 'grid';
   workListModal.setAttribute('aria-hidden', 'false');
 });
