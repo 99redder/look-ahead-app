@@ -1117,7 +1117,24 @@ function renderWorkList(editingTaskId = null) {
           </div>`;
         }
       } else {
-        html += `<div class="work-list-slot" data-slot-category="${cat.categoryId}" data-slot-index="${i}" title="Click to add task here"></div>`;
+        // Check if this slot should show an input for new task
+        const isNewSlot = newSlotInfo && newSlotInfo.categoryId === cat.categoryId && newSlotInfo.slotIndex === i;
+        if (isNewSlot) {
+          html += `<div class="work-list-slot new-task" data-slot-category="${cat.categoryId}" data-slot-index="${i}">
+            <div class="slot-actions left">
+              <button class="slot-add" style="visibility:hidden">+</button>
+            </div>
+            <div class="slot-content">
+              <input type="text" class="slot-edit-input new-task-input" data-new-slot-category="${cat.categoryId}" placeholder="Type task name, press Enter..." />
+            </div>
+            <div class="slot-actions right">
+              <button class="slot-delete" style="visibility:hidden">×</button>
+            </div>
+          </div>`;
+        } else {
+          html += `<div class="work-list-slot empty" data-slot-category="${cat.categoryId}" data-slot-index="${i}" title="Click to add task"></div>`;
+        }
+      }
       }
     }
     
@@ -1215,48 +1232,18 @@ function wireWorkListEvents() {
     } else if (!deleteBtn && !addBtn && slot.classList.contains('has-task')) {
       // Clicked on an empty area of a task slot (not buttons) - do nothing
       return;
-    } else if (!deleteBtn && !addBtn) {
-      // Clicked on an empty slot - add new task
+    } else if (!deleteBtn && !addBtn && (slot.classList.contains('empty') || slot.classList.contains('new-task'))) {
+      // Clicked on an empty slot - show inline input for new task
       const categoryId = slot.getAttribute('data-slot-category') || DEFAULT_CATEGORY_ID;
-      const next = await promptModal({
-        title: 'New Task',
-        message: `Add a task to ${getCategoryById(categoryId).name}:
-
-Click OK to add to Today, then edit details.`,
-        initialValue: '',
-        saveLabel: 'Add to Today',
-        showCategory: true,
-        showTime: true,
-        selectedCategoryId: categoryId
-      });
-      if (next == null) return;
-      
-      const today = localDayAnchor().toISOString().split('T')[0];
-      const title = (typeof next === 'string' ? next : next.title || '').trim();
-      const dueTime = formatMilitaryTime(typeof next === 'object' ? next.dueTime : '') || null;
-      const nextCategoryId = typeof next === 'object' ? next.categoryId : categoryId;
-      
-      if (!title) return;
-      
-      try {
-        setSync('Syncing…');
-        await api('/api/planner/items', {
-          method: 'POST',
-          body: JSON.stringify({
-            userId: USER_ID,
-            kind: 'task',
-            title,
-            dueDate: today,
-            dueTime,
-            source: 'lookahead-app',
-            ...categoryMeta(nextCategoryId)
-          })
-        });
-        await refreshAfterMutation();
-        renderWorkList();
-      } catch (err) {
-        setSync(err.message || 'Sync error', false);
-      }
+      const slotIndex = parseInt(slot.getAttribute('data-slot-index'), 10);
+      renderWorkList(null, { categoryId, slotIndex });
+      // Focus the new task input after render
+      setTimeout(() => {
+        const input = workListContent.querySelector('.new-task-input');
+        if (input) {
+          input.focus();
+        }
+      }, 10);
     }
   });
   
@@ -1266,33 +1253,62 @@ Click OK to add to Today, then edit details.`,
       if (e.key === 'Enter') {
         e.preventDefault();
         const taskId = e.target.getAttribute('data-edit-id');
-        const newTitle = e.target.value.trim();
-        if (!newTitle) return;
+        const newTaskCategory = e.target.getAttribute('data-new-slot-category');
         
-        const task = tasks.find((t) => t.id === taskId);
-        if (!task) return;
-        
-        try {
-          setSync('Syncing…');
-          await api('/api/planner/items', {
-            method: 'POST',
-            body: JSON.stringify({
-              id: task.id,
-              userId: USER_ID,
-              kind: task.kind || 'task',
-              title: newTitle,
-              dueDate: task.due_date || null,
-              dueTime: task.due_time || null,
-              notes: task.notes || null,
-              status: task.status || 'open',
-              source: task.source || 'lookahead-app',
-              ...categoryMeta(task.categoryId || DEFAULT_CATEGORY_ID)
-            })
-          });
-          await refreshAfterMutation();
-          renderWorkList();
-        } catch (err) {
-          setSync(err.message || 'Sync error', false);
+        if (newTaskCategory) {
+          // Creating a new task
+          const newTitle = e.target.value.trim();
+          if (!newTitle) return;
+          
+          const today = localDayAnchor().toISOString().split('T')[0];
+          try {
+            setSync('Syncing…');
+            await api('/api/planner/items', {
+              method: 'POST',
+              body: JSON.stringify({
+                userId: USER_ID,
+                kind: 'task',
+                title: newTitle,
+                dueDate: null, // Work list tasks have no due date
+                source: 'lookahead-app',
+                ...categoryMeta(newTaskCategory)
+              })
+            });
+            await refreshAfterMutation();
+            renderWorkList();
+          } catch (err) {
+            setSync(err.message || 'Sync error', false);
+          }
+        } else if (taskId) {
+          // Editing existing task
+          const newTitle = e.target.value.trim();
+          if (!newTitle) return;
+          
+          const task = tasks.find((t) => t.id === taskId);
+          if (!task) return;
+          
+          try {
+            setSync('Syncing…');
+            await api('/api/planner/items', {
+              method: 'POST',
+              body: JSON.stringify({
+                id: task.id,
+                userId: USER_ID,
+                kind: task.kind || 'task',
+                title: newTitle,
+                dueDate: task.due_date || null,
+                dueTime: task.due_time || null,
+                notes: task.notes || null,
+                status: task.status || 'open',
+                source: task.source || 'lookahead-app',
+                ...categoryMeta(task.categoryId || DEFAULT_CATEGORY_ID)
+              })
+            });
+            await refreshAfterMutation();
+            renderWorkList();
+          } catch (err) {
+            setSync(err.message || 'Sync error', false);
+          }
         }
       } else if (e.key === 'Escape') {
         renderWorkList();
@@ -1304,34 +1320,59 @@ Click OK to add to Today, then edit details.`,
   workListContent.addEventListener('blur', async (e) => {
     if (e.target.classList.contains('slot-edit-input')) {
       const taskId = e.target.getAttribute('data-edit-id');
+      const newTaskCategory = e.target.getAttribute('data-new-slot-category');
       const newTitle = e.target.value.trim();
-      if (!newTitle) return;
       
-      const task = tasks.find((t) => t.id === taskId);
-      if (!task) return;
-      
-      try {
-        setSync('Syncing…');
-        await api('/api/planner/items', {
-          method: 'POST',
-          body: JSON.stringify({
-            id: task.id,
-            userId: USER_ID,
-            kind: task.kind || 'task',
-            title: newTitle,
-            dueDate: task.due_date || null,
-            dueTime: task.due_time || null,
-            notes: task.notes || null,
-            status: task.status || 'open',
-            source: task.source || 'lookahead-app',
-            ...categoryMeta(task.categoryId || DEFAULT_CATEGORY_ID)
-          })
-        });
-        await refreshAfterMutation();
-        renderWorkList();
-      } catch (err) {
-        setSync(err.message || 'Sync error', false);
+      // Only save if there's a title
+      if (newTitle) {
+        if (newTaskCategory) {
+          // Creating new task
+          try {
+            setSync('Syncing…');
+            await api('/api/planner/items', {
+              method: 'POST',
+              body: JSON.stringify({
+                userId: USER_ID,
+                kind: 'task',
+                title: newTitle,
+                dueDate: null,
+                source: 'lookahead-app',
+                ...categoryMeta(newTaskCategory)
+              })
+            });
+            await refreshAfterMutation();
+          } catch (err) {
+            setSync(err.message || 'Sync error', false);
+          }
+        } else if (taskId) {
+          // Editing existing task
+          const task = tasks.find((t) => t.id === taskId);
+          if (task) {
+            try {
+              setSync('Syncing…');
+              await api('/api/planner/items', {
+                method: 'POST',
+                body: JSON.stringify({
+                  id: task.id,
+                  userId: USER_ID,
+                  kind: task.kind || 'task',
+                  title: newTitle,
+                  dueDate: task.due_date || null,
+                  dueTime: task.due_time || null,
+                  notes: task.notes || null,
+                  status: task.status || 'open',
+                  source: task.source || 'lookahead-app',
+                  ...categoryMeta(task.categoryId || DEFAULT_CATEGORY_ID)
+                })
+              });
+              await refreshAfterMutation();
+            } catch (err) {
+              setSync(err.message || 'Sync error', false);
+            }
+          }
+        }
       }
+      renderWorkList();
     }
   }, true);
 }
