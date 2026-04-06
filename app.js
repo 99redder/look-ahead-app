@@ -1063,7 +1063,9 @@ function renderWorkList(editingTaskId = null, newSlotInfo = null) {
   const unscheduledTasks = tasks.filter((task) => !task.due_date || task.due_date === '');
 
   const tasksByCategory = {};
+  const WORK_LIST_EXCLUDED = new Set(['uncategorized', 'other']);
   categories.forEach((cat) => {
+    if (WORK_LIST_EXCLUDED.has(cat.name.toLowerCase())) return;
     tasksByCategory[cat.categoryId] = {
       category: cat,
       tasks: unscheduledTasks.filter((t) => t.categoryId === cat.categoryId)
