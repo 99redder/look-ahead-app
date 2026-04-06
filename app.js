@@ -1135,7 +1135,6 @@ function renderWorkList(editingTaskId = null) {
           html += `<div class="work-list-slot empty" data-slot-category="${cat.categoryId}" data-slot-index="${i}" title="Click to add task"></div>`;
         }
       }
-      }
     }
     
     html += '</div></div>';
