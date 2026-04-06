@@ -1072,8 +1072,22 @@ function renderWorkList(editingTaskId = null, newSlotInfo = null) {
     };
   });
 
+  // Get sort preference from select, default to 'tasks'
+  const sortSelect = document.getElementById('work-list-sort-select');
+  const sortBy = sortSelect ? sortSelect.value : 'tasks';
+
+  // Sort categories
+  const sortedCategories = Object.values(tasksByCategory).sort((a, b) => {
+    if (sortBy === 'alpha') {
+      return a.category.name.localeCompare(b.category.name);
+    } else {
+      // Default: sort by number of tasks (descending)
+      return b.tasks.length - a.tasks.length;
+    }
+  });
+
   let html = '';
-  Object.values(tasksByCategory).forEach((catData) => {
+  sortedCategories.forEach((catData) => {
     const cat = catData.category;
     const catTasks = catData.tasks;
     const color = normalizeHexColor(cat.color, DEFAULT_CATEGORY_COLOR);
@@ -1321,6 +1335,14 @@ document.addEventListener('keydown', (e) => {
 
 // Wire work list events once at startup
 wireWorkListEvents();
+
+// Sort select change handler
+const workListSortSelect = document.getElementById('work-list-sort-select');
+if (workListSortSelect) {
+  workListSortSelect.addEventListener('change', () => {
+    renderWorkList();
+  });
+}
 
 // Open work list modal from button
 calWorkList?.addEventListener('click', () => {
