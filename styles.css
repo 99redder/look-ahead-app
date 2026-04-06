@@ -125,6 +125,25 @@ button:hover { border-color: var(--pink); color: var(--pink); }
 .focus-time{color:var(--line);font-weight:700;text-align:right}
 .focus-time-title{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
+/* Work List Modal */
+.work-list-content{max-height:60vh;overflow-y:auto}
+.work-list-category{margin-bottom:16px;border:1px solid #214526;border-radius:8px;padding:10px;background:#0b120d}
+.work-list-category-header{display:flex;align-items:center;gap:8px;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid #214526}
+.category-color-swatch{width:14px;height:14px;border-radius:50%;flex:0 0 auto}
+.category-title{font-weight:700;color:var(--muted);flex:1}
+.work-list-slots{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:6px}
+.work-list-slot{border:1px dashed #214526;border-radius:6px;padding:6px 4px;background:#090f0b;cursor:pointer;position:relative;transition:border-color .15s}
+.work-list-slot:hover{border-color:var(--line)}
+.work-list-slot.has-task{border-style:solid;background:#0f2a12}
+.work-list-slot .slot-content{font-size:11px;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.work-list-slot .slot-time{color:var(--line);font-weight:700}
+.work-list-slot .slot-title{color:var(--text);margin-top:2px}
+.work-list-slot .slot-actions{position:absolute;right:4px;top:4px;display:flex;gap:2px;opacity:.6}
+.work-list-slot .slot-actions button{padding:0;border:none;background:transparent;color:inherit;cursor:pointer;font-size:11px;line-height:1}
+.work-list-slot .slot-actions button:hover{opacity:1}
+.work-list-slot .slot-delete{color:#ff9b9b}
+.work-list-slot .slot-add{color:var(--muted)}
+
 @media (max-width: 1100px){
   .top-main{flex-direction:column;align-items:stretch}
   .brand-block{display:flex;flex-wrap:wrap;align-items:flex-start}

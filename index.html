@@ -43,6 +43,7 @@
             <div id="category-list" class="category-list"></div>
           </section>
 
+          <button id="cal-work-list" type="button" class="focus-toggle">WORK LIST</button>
           <button id="cal-focus" type="button" class="focus-toggle">WEEK FOCUS</button>
         </div>
         <div class="header-actions">
@@ -99,6 +100,18 @@
       <div class="modal-actions">
         <button id="category-delete-modal-cancel" type="button">Keep Category</button>
         <button id="category-delete-modal-confirm" type="button" style="background:#5a2222;border-color:#5a2222;color:#ff9b9b;">Move Tasks & Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Work List Modal -->
+  <div id="work-list-modal" class="modal-backdrop" style="display:none;" aria-hidden="true">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="work-list-modal-title">
+      <h3 id="work-list-modal-title" class="modal-title">Work List</h3>
+      <p id="work-list-modal-message" class="modal-message">Unscheduled tasks - click a slot to add or edit</p>
+      <div id="work-list-content" class="work-list-content"></div>
+      <div class="modal-actions">
+        <button id="work-list-close" type="button">Close</button>
       </div>
     </div>
   </div>

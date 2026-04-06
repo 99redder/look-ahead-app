@@ -47,6 +47,15 @@ const categoryDeleteModalMessage = document.getElementById('category-delete-moda
 const categoryDeleteModalConfirm = document.getElementById('category-delete-modal-confirm');
 const categoryDeleteModalCancel = document.getElementById('category-delete-modal-cancel');
 
+const calWorkList = document.getElementById('cal-work-list');
+const calFocus = document.getElementById('cal-focus');
+
+const workListModal = document.getElementById('work-list-modal');
+const workListModalTitle = document.getElementById('work-list-modal-title');
+const workListModalMessage = document.getElementById('work-list-modal-message');
+const workListContent = document.getElementById('work-list-content');
+const workListClose = document.getElementById('work-list-close');
+
 const taskList = document.getElementById('task-list');
 const calendarGrid = document.getElementById('calendar-grid');
 const calLabel = document.getElementById('cal-label');
@@ -1044,6 +1053,191 @@ if (taskList) {
     document.querySelectorAll('.cal-day.drop-target').forEach((el) => el.classList.remove('drop-target'));
   });
 }
+
+// Work List Modal
+function renderWorkList() {
+  if (!workListContent) return;
+  
+  // Get unscheduled tasks (tasks without a due_date)
+  const unscheduledTasks = tasks.filter((task) => !task.due_date || task.due_date === '');
+  
+  // Group by category
+  const tasksByCategory = {};
+  categories.forEach((cat) => {
+    tasksByCategory[cat.categoryId] = {
+      category: cat,
+      tasks: unscheduledTasks.filter((t) => t.categoryId === cat.categoryId)
+    };
+  });
+  
+  // Render each category section with 10 slots
+  let html = '';
+  Object.values(tasksByCategory).forEach((catData) => {
+    const cat = catData.category;
+    const catTasks = catData.tasks;
+    const color = normalizeHexColor(cat.color, DEFAULT_CATEGORY_COLOR);
+    
+    html += `<div class="work-list-category" data-category-id="${escapeHtml(cat.categoryId)}">
+      <div class="work-list-category-header">
+        <div class="category-color-swatch" style="background:${escapeHtml(color)};"></div>
+        <div class="category-title">${escapeHtml(cat.name)}</div>
+      </div>
+      <div class="work-list-slots">`;
+    
+    // Render 10 slots per category
+    for (let i = 0; i < 10; i++) {
+      const task = catTasks[i] || null;
+      if (task) {
+        html += `<div class="work-list-slot has-task" data-task-id="${task.id}" data-category-id="${cat.categoryId}">
+          <div class="slot-content">
+            <div class="slot-time">${escapeHtml(formatMilitaryTime(task.due_time))}</div>
+            <div class="slot-title">${escapeHtml(task.title)}</div>
+          </div>
+          <div class="slot-actions">
+            <button class="slot-delete" data-delete-id="${task.id}" title="Delete">×</button>
+            <button class="slot-add" data-add-id="${task.id}" title="Add to Today">+</button>
+          </div>
+        </div>`;
+      } else {
+        html += `<div class="work-list-slot" data-slot-category="${cat.categoryId}" data-slot-index="${i}" title="Click to add task here"></div>`;
+      }
+    }
+    
+    html += '</div></div>';
+  });
+  
+  workListContent.innerHTML = html;
+}
+
+function wireWorkListEvents() {
+  if (!workListContent) return;
+  
+  workListContent.addEventListener('click', async (e) => {
+    const slot = e.target.closest('.work-list-slot');
+    if (!slot) return;
+    
+    const deleteBtn = e.target.closest('.slot-delete');
+    const addBtn = e.target.closest('.slot-add');
+    
+    if (deleteBtn) {
+      e.stopPropagation();
+      const taskId = deleteBtn.getAttribute('data-delete-id');
+      const task = tasks.find((t) => t.id === taskId);
+      if (task) {
+        const confirmed = await confirmDelete(`Delete "${task.title}"?`);
+        if (confirmed) {
+          try {
+            setSync('Syncing…');
+            await api('/api/planner/items/delete', { method: 'POST', body: JSON.stringify({ id: task.id }) });
+            await loadTasks();
+            renderWorkList();
+          } catch (err) {
+            setSync(err.message || 'Sync error', false);
+          }
+        }
+      }
+    } else if (addBtn) {
+      e.stopPropagation();
+      const taskId = addBtn.getAttribute('data-add-id');
+      const task = tasks.find((t) => t.id === taskId);
+      if (task) {
+        // Add to today with time prompt
+        const today = localDayAnchor().toISOString().split('T')[0];
+        const next = await promptModal({
+          title: `Add to ${today}`,
+          message: `Schedule "${task.title}" for today. Adjust time if needed.`,
+          initialValue: task.title,
+          saveLabel: 'Add',
+          showCategory: true,
+          showTime: true,
+          selectedCategoryId: task.categoryId
+        });
+        if (next == null) return;
+        
+        const title = (typeof next === 'string' ? next : next.title || task.title).trim();
+        const dueTime = formatMilitaryTime(typeof next === 'object' ? next.dueTime : '') || null;
+        const nextCategoryId = typeof next === 'object' ? next.categoryId : task.categoryId;
+        
+        // Create new task for today
+        try {
+          setSync('Syncing…');
+          await api('/api/planner/items', {
+            method: 'POST',
+            body: JSON.stringify({
+              userId: USER_ID,
+              kind: 'task',
+              title,
+              dueDate: today,
+              dueTime,
+              source: 'lookahead-app',
+              ...categoryMeta(nextCategoryId)
+            })
+          });
+          // Keep original task unscheduled (user can delete if desired)
+          await loadTasks();
+          renderWorkList();
+        } catch (err) {
+          setSync(err.message || 'Sync error', false);
+        }
+      }
+    } else if (!deleteBtn && !addBtn) {
+      // Clicked on the slot itself - add new task
+      const categoryId = slot.getAttribute('data-slot-category') || DEFAULT_CATEGORY_ID;
+      const next = await promptModal({
+        title: 'New Task',
+        message: `Add a task to ${getCategoryById(categoryId).name}:
+
+Click OK to add to Today, then edit details.`,
+        initialValue: '',
+        saveLabel: 'Add to Today',
+        showCategory: true,
+        showTime: true,
+        selectedCategoryId: categoryId
+      });
+      if (next == null) return;
+      
+      const today = localDayAnchor().toISOString().split('T')[0];
+      const title = (typeof next === 'string' ? next : next.title || '').trim();
+      const dueTime = formatMilitaryTime(typeof next === 'object' ? next.dueTime : '') || null;
+      const nextCategoryId = typeof next === 'object' ? next.categoryId : categoryId;
+      
+      if (!title) return;
+      
+      try {
+        setSync('Syncing…');
+        await api('/api/planner/items', {
+          method: 'POST',
+          body: JSON.stringify({
+            userId: USER_ID,
+            kind: 'task',
+            title,
+            dueDate: today,
+            dueTime,
+            source: 'lookahead-app',
+            ...categoryMeta(nextCategoryId)
+          })
+        });
+        await loadTasks();
+        renderWorkList();
+      } catch (err) {
+        setSync(err.message || 'Sync error', false);
+      }
+    }
+  });
+}
+
+workListClose?.addEventListener('click', () => {
+  workListModal.style.display = 'none';
+  workListModal.setAttribute('aria-hidden', 'true');
+});
+
+// Open work list modal from button
+calWorkList?.addEventListener('click', () => {
+  renderWorkList();
+  wireWorkListEvents();
+  workListModal.style.display = 'grid';
+  workListModal.setAttribute('aria-hidden', 'false');
+});
 
 loadTasks().catch((err) => {
   setSync(err?.message || 'Network error when attempting to fetch resource', false);
