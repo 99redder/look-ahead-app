@@ -28,7 +28,7 @@ button:hover { border-color: var(--pink); color: var(--pink); }
 .header-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex:0 0 auto; align-self:flex-start; }
 
 .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.6);display:grid;place-items:center;z-index:2000}
-.modal-card{width:min(520px,92vw);background:#081009;border:1px solid var(--line);border-radius:10px;padding:14px}
+.modal-card{width:min(720px,92vw);background:#081009;border:1px solid var(--line);border-radius:10px;padding:14px}
 .modal-title{margin:0 0 6px;color:var(--line)}
 .modal-message{margin:0 0 8px;color:var(--muted)}
 .modal-input{width:100%;background:#0b120d;color:var(--text);border:1px solid #39ff14;border-radius:8px;padding:10px}
@@ -133,15 +133,15 @@ button:hover { border-color: var(--pink); color: var(--pink); }
 .work-list-category-header{display:flex;align-items:center;gap:8px;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid #214526}
 .category-color-swatch{width:14px;height:14px;border-radius:50%;flex:0 0 auto}
 .category-title{font-weight:700;color:var(--muted);flex:1}
-.work-list-slots{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:6px}
-.work-list-slot{border:1px dashed #214526;border-radius:6px;padding:6px 4px;background:#090f0b;cursor:pointer;position:relative;transition:border-color .15s}
+.work-list-slots{display:flex;flex-direction:column;gap:6px}
+.work-list-slot{border:1px dashed #214526;border-radius:6px;padding:8px;background:#090f0b;cursor:pointer;position:relative;transition:border-color .15s}
 .work-list-slot:hover{border-color:var(--line)}
 .work-list-slot.has-task{border-style:solid;background:#0f2a12}
-.work-list-slot .slot-content{font-size:11px;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.work-list-slot .slot-content{font-size:13px;line-height:1.3}
 .work-list-slot .slot-time{color:var(--line);font-weight:700}
-.work-list-slot .slot-title{color:var(--text);margin-top:2px}
-.work-list-slot .slot-actions{position:absolute;right:4px;top:4px;display:flex;gap:2px;opacity:.6}
-.work-list-slot .slot-actions button{padding:0;border:none;background:transparent;color:inherit;cursor:pointer;font-size:11px;line-height:1}
+.work-list-slot .slot-title{color:var(--text);margin-top:4px}
+.work-list-slot .slot-actions{position:absolute;right:6px;top:6px;display:flex;gap:2px;opacity:.6}
+.work-list-slot .slot-actions button{padding:2px 6px;border:none;background:transparent;color:inherit;cursor:pointer;font-size:13px;line-height:1}
 .work-list-slot .slot-actions button:hover{opacity:1}
 .work-list-slot .slot-delete{color:#ff9b9b}
 .work-list-slot .slot-add{color:var(--muted)}

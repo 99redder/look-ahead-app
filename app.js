@@ -1129,7 +1129,7 @@ function wireWorkListEvents() {
           try {
             setSync('Syncing…');
             await api('/api/planner/items/delete', { method: 'POST', body: JSON.stringify({ id: task.id }) });
-            await loadTasks();
+            await refreshAfterMutation();
             renderWorkList();
           } catch (err) {
             setSync(err.message || 'Sync error', false);
@@ -1174,7 +1174,7 @@ function wireWorkListEvents() {
             })
           });
           // Keep original task unscheduled (user can delete if desired)
-          await loadTasks();
+          await refreshAfterMutation();
           renderWorkList();
         } catch (err) {
           setSync(err.message || 'Sync error', false);
@@ -1217,7 +1217,7 @@ Click OK to add to Today, then edit details.`,
             ...categoryMeta(nextCategoryId)
           })
         });
-        await loadTasks();
+        await refreshAfterMutation();
         renderWorkList();
       } catch (err) {
         setSync(err.message || 'Sync error', false);
@@ -1231,8 +1231,26 @@ workListClose?.addEventListener('click', () => {
   workListModal.setAttribute('aria-hidden', 'true');
 });
 
+workListModal?.addEventListener('click', (e) => {
+  if (e.target === workListModal) {
+    workListModal.style.display = 'none';
+    workListModal.setAttribute('aria-hidden', 'true');
+  }
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && workListModal && workListModal.style.display === 'grid') {
+    workListModal.style.display = 'none';
+    workListModal.setAttribute('aria-hidden', 'true');
+  }
+});
+
 // Open work list modal from button
 calWorkList?.addEventListener('click', () => {
+  // Hide the main prompt modal backdrop if open
+  modalBackdrop.style.display = 'none';
+  modalBackdrop.setAttribute('aria-hidden', 'true');
+  
   renderWorkList();
   wireWorkListEvents();
   workListModal.style.display = 'grid';
