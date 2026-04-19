@@ -6,7 +6,7 @@ const API_BASES = [
 const USER_ID = 'chris';
 const CATEGORY_KIND = 'category';
 const DEFAULT_CATEGORY_ID = 'followup';
-const DEFAULT_CATEGORY_COLOR = '#ff9f1c';
+const DEFAULT_CATEGORY_COLOR = '#ffffff';
 const CATEGORY_COLORS = [
   '#39ff14', '#ffffff', '#ff0033', '#00f5d4',
   '#00e5ff', '#38b6ff', '#6a5cff', '#b517ff',
