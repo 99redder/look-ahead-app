@@ -961,7 +961,7 @@ async function openCreateTaskModalForDay(ymd) {
     initialValue: '',
     saveLabel: 'Create',
     showCategory: true,
-    showTime: false,
+    showTime: true,
     selectedCategoryId: DEFAULT_CATEGORY_ID
   });
   if (next == null) return;
