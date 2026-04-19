@@ -5,8 +5,8 @@ const API_BASES = [
 
 const USER_ID = 'chris';
 const CATEGORY_KIND = 'category';
-const DEFAULT_CATEGORY_ID = 'uncategorized';
-const DEFAULT_CATEGORY_COLOR = '#39ff14';
+const DEFAULT_CATEGORY_ID = 'followup';
+const DEFAULT_CATEGORY_COLOR = '#ff9f1c';
 const CATEGORY_COLORS = [
   '#39ff14', '#ffffff', '#ff0033', '#00f5d4',
   '#00e5ff', '#38b6ff', '#6a5cff', '#b517ff',
@@ -237,9 +237,9 @@ function ensureDefaultCategory() {
     categories = [{
       id: `category:${DEFAULT_CATEGORY_ID}`,
       categoryId: DEFAULT_CATEGORY_ID,
-      name: 'Uncategorized',
+      name: 'FOLLOW UP',
       color: DEFAULT_CATEGORY_COLOR,
-      title: 'Uncategorized',
+      title: 'FOLLOW UP',
       kind: CATEGORY_KIND,
       user_id: USER_ID,
       status: 'open',
@@ -249,7 +249,7 @@ function ensureDefaultCategory() {
 }
 
 function normalizeCategory(item = {}) {
-  const name = String(item.name || item.title || 'Uncategorized').trim() || 'Uncategorized';
+  const name = String(item.name || item.title || 'FOLLOW UP').trim() || 'FOLLOW UP';
   const categoryId = String(item.categoryId || item.category_id || slugifyCategoryName(name) || DEFAULT_CATEGORY_ID);
   return {
     ...item,
@@ -288,7 +288,7 @@ function getCategoryById(categoryId) {
   ensureDefaultCategory();
   return categories.find((category) => String(category.categoryId) === String(categoryId))
     || categories.find((category) => category.categoryId === DEFAULT_CATEGORY_ID)
-    || { categoryId: DEFAULT_CATEGORY_ID, name: 'Uncategorized', color: DEFAULT_CATEGORY_COLOR };
+    || { categoryId: DEFAULT_CATEGORY_ID, name: 'FOLLOW UP', color: DEFAULT_CATEGORY_COLOR };
 }
 
 function getTaskCategory(task) {
@@ -495,7 +495,7 @@ function categoryEditorModal(category = null) {
     categoryModalMessage.textContent = isExisting
       ? (category.categoryId === DEFAULT_CATEGORY_ID
         ? 'Update the default category name or color.'
-        : 'Update the category name or color. You can also delete it and move its tasks to Uncategorized.')
+        : 'Update the category name or color. You can also delete it and move its tasks to FOLLOW UP.')
       : 'Create a category with a name and color.';
     categoryModalInput.value = category?.name || '';
     categoryModalSave.textContent = isExisting ? 'Save' : 'Create';
@@ -535,7 +535,7 @@ function categoryEditorModal(category = null) {
 
 function confirmCategoryDelete(categoryName) {
   return new Promise((resolve) => {
-    categoryDeleteModalMessage.textContent = `Delete “${categoryName}”? Tasks in it will move to Uncategorized.`;
+    categoryDeleteModalMessage.textContent = `Delete "${categoryName}"? Tasks in it will move to FOLLOW UP.`;
     categoryDeleteModal.style.display = 'grid';
     categoryDeleteModal.setAttribute('aria-hidden', 'false');
 
@@ -623,7 +623,7 @@ async function manageCategories() {
 }
 
 async function loadTasks() {
-  setSync('Syncing…');
+  setSync('Syncing...');
   const data = await api(`/api/planner/items?userId=${encodeURIComponent(USER_ID)}&includeDone=1`);
   const items = Array.isArray(data.items) ? data.items : [];
   parseCategoryPayload(items);
@@ -674,7 +674,7 @@ function renderCalendar() {
     const startLabel = dateFormatter.format(start);
     const endDate = new Date(startYear, startMonth, startDay + (daysToShow - 1), 12, 0, 0, 0);
     const endLabel = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(endDate);
-    calLabel.textContent = `${startLabel} – ${endLabel}`;
+    calLabel.textContent = `${startLabel} - ${endLabel}`;
   }
 
   if (focusMode) {
@@ -787,7 +787,7 @@ if (taskList) {
     const id = btn.dataset.id;
     const act = btn.dataset.act;
     try {
-      setSync('Syncing…');
+      setSync('Syncing...');
       if (act === 'toggle') await api('/api/planner/items/toggle', { method: 'POST', body: JSON.stringify({ id }) });
       if (act === 'delete') await api('/api/planner/items/delete', { method: 'POST', body: JSON.stringify({ id }) });
       await refreshAfterMutation();
@@ -803,7 +803,7 @@ if (taskList) {
     const dueDate = input.value;
     if (!id || !dueDate) return;
     try {
-      setSync('Syncing…');
+      setSync('Syncing...');
       await api('/api/planner/items/reschedule', { method: 'POST', body: JSON.stringify({ id, dueDate }) });
       await refreshAfterMutation();
     } catch (err) {
@@ -850,7 +850,7 @@ if (categoryList) {
     const edited = await categoryEditorModal(category);
     if (!edited) return;
     try {
-      setSync('Syncing…');
+      setSync('Syncing...');
       if (edited.delete) {
         if (!await confirmCategoryDelete(category.name)) return;
         await deleteCategory(category);
@@ -910,7 +910,7 @@ calendarGrid.addEventListener('click', async (e) => {
     if (!title) return;
 
     try {
-      setSync('Syncing…');
+      setSync('Syncing...');
       await api('/api/planner/items', {
         method: 'POST',
         body: JSON.stringify({
@@ -970,7 +970,7 @@ async function openCreateTaskModalForDay(ymd) {
   const nextCategoryId = typeof next === 'object' ? next.categoryId : DEFAULT_CATEGORY_ID;
   if (!title) return;
   try {
-    setSync('Syncing…');
+    setSync('Syncing...');
     await api('/api/planner/items', {
       method: 'POST',
       body: JSON.stringify({
@@ -1026,7 +1026,7 @@ calendarGrid.addEventListener('drop', async (e) => {
   const id = dragTaskId || e.dataTransfer?.getData('text/plain') || '';
   if (!id || !ymd) return;
   try {
-    setSync('Syncing…');
+    setSync('Syncing...');
     await api('/api/planner/items/reschedule', { method: 'POST', body: JSON.stringify({ id, dueDate: ymd }) });
     await refreshAfterMutation();
   } catch (err) {
@@ -1063,7 +1063,7 @@ function renderWorkList(editingTaskId = null, newSlotInfo = null) {
   const unscheduledTasks = tasks.filter((task) => !task.due_date || task.due_date === '');
 
   const tasksByCategory = {};
-  const WORK_LIST_EXCLUDED = new Set(['uncategorized', 'other']);
+  const WORK_LIST_EXCLUDED = new Set(['followup', 'other']);
   categories.forEach((cat) => {
     if (WORK_LIST_EXCLUDED.has(cat.name.toLowerCase())) return;
     tasksByCategory[cat.categoryId] = {
@@ -1099,7 +1099,7 @@ function renderWorkList(editingTaskId = null, newSlotInfo = null) {
         <span style="color:var(--muted);font-size:12px;margin-left:auto;">${catTasks.length} task${catTasks.length !== 1 ? 's' : ''} &nbsp;${chevron}</span>
       </div>
       ${isExpanded ? `<div class="work-list-slots">` : `<div class="work-list-slots" style="display:none;">`}`;
-    
+
     // Render 10 slots per category
     for (let i = 0; i < 10; i++) {
       const task = catTasks[i] || null;
@@ -1152,10 +1152,10 @@ function renderWorkList(editingTaskId = null, newSlotInfo = null) {
         }
       }
     }
-    
+
     html += '</div></div>';
   });
-  
+
   workListContent.innerHTML = html;
 }
 
@@ -1191,7 +1191,7 @@ function wireWorkListEvents() {
         const confirmed = await confirmDelete(`Delete "${task.title}"?`);
         if (confirmed) {
           try {
-            setSync('Syncing…');
+            setSync('Syncing...');
             await api('/api/planner/items/delete', { method: 'POST', body: JSON.stringify({ id: task.id }) });
             await refreshAfterMutation();
             renderWorkList();
@@ -1206,7 +1206,7 @@ function wireWorkListEvents() {
       const task = tasks.find((t) => String(t.id) === String(taskId));
       if (task) {
         try {
-          setSync('Syncing…');
+          setSync('Syncing...');
           await api('/api/planner/items/reschedule', {
             method: 'POST',
             body: JSON.stringify({ id: task.id, dueDate: ymdToday() })
@@ -1246,8 +1246,8 @@ function wireWorkListEvents() {
       }, 10);
     }
   });
-  
-  // Handle inline edit input — keydown only (no blur-save to prevent double-fire)
+
+  // Handle inline edit input - keydown only (no blur-save to prevent double-fire)
   let workListSaving = false;
   workListContent.addEventListener('keydown', async (e) => {
     if (!e.target.classList.contains('slot-edit-input')) return;
@@ -1268,7 +1268,7 @@ function wireWorkListEvents() {
 
     workListSaving = true;
     try {
-      setSync('Syncing…');
+      setSync('Syncing...');
       if (newTaskCategory) {
         // Creating a new unscheduled task
         await api('/api/planner/items', {
