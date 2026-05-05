@@ -595,7 +595,7 @@
         setSync('Saving...');
         await api('/api/planner/items/toggle', {
           method: 'POST',
-          body: JSON.stringify({ id })
+          body: JSON.stringify({ id, userId: USER_ID })
         });
         const scrollPos = window.scrollY;
         await loadTasks();
@@ -611,7 +611,7 @@
         setSync('Deleting...');
         await api('/api/planner/items/delete', {
           method: 'POST',
-          body: JSON.stringify({ id })
+          body: JSON.stringify({ id, userId: USER_ID })
         });
         const scrollPos = window.scrollY;
         await loadTasks();

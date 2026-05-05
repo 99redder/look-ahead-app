@@ -202,11 +202,12 @@ async function handleToggleItem(request, env, corsHeaders, url) {
   const id = data.id;
   if (!id) return json({ ok: false, error: 'Missing id' }, 400, corsHeaders);
 
-  const existing = await env.DB.prepare('SELECT status FROM planner_items WHERE id = ?1').bind(id).first();
-  if (!existing) return json({ ok: false, error: 'Item not found' }, 404, corsHeaders);
+  const existing = await env.DB.prepare('SELECT status FROM planner_items WHERE id = ?1 AND user_id = ?2').bind(id, data.userId).first();
+  if (!existing) return json({ ok: false, error: 'Not found' }, 404, corsHeaders);
 
   const newStatus = existing.status === 'done' ? 'open' : 'done';
-  await env.DB.prepare("UPDATE planner_items SET status = ?1, updated_at = datetime('now') WHERE id = ?2").bind(newStatus, id).run();
+  const result = await env.DB.prepare("UPDATE planner_items SET status = ?1, updated_at = datetime('now') WHERE id = ?2 AND user_id = ?3").bind(newStatus, id, data.userId).run();
+  if (result.meta.changes !== 1) return json({ ok: false, error: 'Not found' }, 404, corsHeaders);
 
   return json({ ok: true, status: newStatus }, 200, corsHeaders);
 }
@@ -225,7 +226,8 @@ async function handleDeleteItem(request, env, corsHeaders, url) {
   const id = data.id;
   if (!id) return json({ ok: false, error: 'Missing id' }, 400, corsHeaders);
 
-  await env.DB.prepare('DELETE FROM planner_items WHERE id = ?1').bind(id).run();
+  const result = await env.DB.prepare('DELETE FROM planner_items WHERE id = ?1 AND user_id = ?2').bind(id, data.userId).run();
+  if (result.meta.changes !== 1) return json({ ok: false, error: 'Not found' }, 404, corsHeaders);
 
   return json({ ok: true }, 200, corsHeaders);
 }
@@ -246,7 +248,8 @@ async function handleRescheduleItem(request, env, corsHeaders, url) {
 
   if (!id) return json({ ok: false, error: 'Missing id' }, 400, corsHeaders);
 
-  await env.DB.prepare("UPDATE planner_items SET due_date = ?1, updated_at = datetime('now') WHERE id = ?2").bind(dueDate, id).run();
+  const result = await env.DB.prepare("UPDATE planner_items SET due_date = ?1, updated_at = datetime('now') WHERE id = ?2 AND user_id = ?3").bind(dueDate, id, data.userId).run();
+  if (result.meta.changes !== 1) return json({ ok: false, error: 'Not found' }, 404, corsHeaders);
 
   return json({ ok: true }, 200, corsHeaders);
 }

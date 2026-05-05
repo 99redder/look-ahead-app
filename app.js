@@ -612,7 +612,7 @@ async function deleteCategory(category) {
       })
     });
   }
-  await api('/api/planner/items/delete', { method: 'POST', body: JSON.stringify({ id: category.id }) });
+  await api('/api/planner/items/delete', { method: 'POST', body: JSON.stringify({ id: category.id, userId: USER_ID }) });
 }
 
 async function manageCategories() {
@@ -788,8 +788,8 @@ if (taskList) {
     const act = btn.dataset.act;
     try {
       setSync('Syncing...');
-      if (act === 'toggle') await api('/api/planner/items/toggle', { method: 'POST', body: JSON.stringify({ id }) });
-      if (act === 'delete') await api('/api/planner/items/delete', { method: 'POST', body: JSON.stringify({ id }) });
+      if (act === 'toggle') await api('/api/planner/items/toggle', { method: 'POST', body: JSON.stringify({ id, userId: USER_ID }) });
+      if (act === 'delete') await api('/api/planner/items/delete', { method: 'POST', body: JSON.stringify({ id, userId: USER_ID }) });
       await refreshAfterMutation();
     } catch (err) {
       setSync(err.message || 'Sync error', false);
@@ -804,7 +804,7 @@ if (taskList) {
     if (!id || !dueDate) return;
     try {
       setSync('Syncing...');
-      await api('/api/planner/items/reschedule', { method: 'POST', body: JSON.stringify({ id, dueDate }) });
+      await api('/api/planner/items/reschedule', { method: 'POST', body: JSON.stringify({ id, userId: USER_ID, dueDate }) });
       await refreshAfterMutation();
     } catch (err) {
       setSync(err.message || 'Sync error', false);
@@ -875,7 +875,7 @@ calendarGrid.addEventListener('click', async (e) => {
     if (!await confirmDelete()) return;
     try {
       setSync('Deleting...');
-      await api('/api/planner/items/delete', { method: 'POST', body: JSON.stringify({ id }) });
+      await api('/api/planner/items/delete', { method: 'POST', body: JSON.stringify({ id, userId: USER_ID }) });
       await refreshAfterMutation();
     } catch (err) {
       setSync(err.message || 'Delete error', false);
@@ -898,7 +898,7 @@ calendarGrid.addEventListener('click', async (e) => {
       if (!await confirmDelete()) return;
       try {
         setSync('Deleting...');
-        await api('/api/planner/items/delete', { method: 'POST', body: JSON.stringify({ id: existing.id }) });
+        await api('/api/planner/items/delete', { method: 'POST', body: JSON.stringify({ id: existing.id, userId: USER_ID }) });
         await refreshAfterMutation();
       } catch (err) {
         setSync(err.message || 'Delete error', false);
@@ -1027,7 +1027,7 @@ calendarGrid.addEventListener('drop', async (e) => {
   if (!id || !ymd) return;
   try {
     setSync('Syncing...');
-    await api('/api/planner/items/reschedule', { method: 'POST', body: JSON.stringify({ id, dueDate: ymd }) });
+    await api('/api/planner/items/reschedule', { method: 'POST', body: JSON.stringify({ id, userId: USER_ID, dueDate: ymd }) });
     await refreshAfterMutation();
   } catch (err) {
     setSync(err.message || 'Sync error', false);
@@ -1192,7 +1192,7 @@ function wireWorkListEvents() {
         if (confirmed) {
           try {
             setSync('Syncing...');
-            await api('/api/planner/items/delete', { method: 'POST', body: JSON.stringify({ id: task.id }) });
+            await api('/api/planner/items/delete', { method: 'POST', body: JSON.stringify({ id: task.id, userId: USER_ID }) });
             await refreshAfterMutation();
             renderWorkList();
           } catch (err) {
@@ -1209,7 +1209,7 @@ function wireWorkListEvents() {
           setSync('Syncing...');
           await api('/api/planner/items/reschedule', {
             method: 'POST',
-            body: JSON.stringify({ id: task.id, dueDate: ymdToday() })
+            body: JSON.stringify({ id: task.id, userId: USER_ID, dueDate: ymdToday() })
           });
           await refreshAfterMutation();
           renderWorkList();
