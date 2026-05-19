@@ -38,29 +38,34 @@ export default {
         return json({ ok: false, error: 'Unauthorized' }, 401, corsHeaders);
       }
 
+      const userId = (env.APP_USER_ID || '').trim();
+      if (!userId) {
+        return json({ ok: false, error: 'Server user misconfigured' }, 503, corsHeaders);
+      }
+
       // GET /api/planner/items - List items
       if (url.pathname === '/api/planner/items' && request.method === 'GET') {
-        return handleGetItems(request, env, corsHeaders, url);
+        return handleGetItems(request, env, corsHeaders, url, userId);
       }
 
       // POST /api/planner/items - Create or update item
       if (url.pathname === '/api/planner/items' && request.method === 'POST') {
-        return handleSaveItem(request, env, corsHeaders, url);
+        return handleSaveItem(request, env, corsHeaders, url, userId);
       }
 
       // POST /api/planner/items/toggle - Toggle done status
       if (url.pathname === '/api/planner/items/toggle' && request.method === 'POST') {
-        return handleToggleItem(request, env, corsHeaders, url);
+        return handleToggleItem(request, env, corsHeaders, url, userId);
       }
 
       // POST /api/planner/items/delete - Delete item
       if (url.pathname === '/api/planner/items/delete' && request.method === 'POST') {
-        return handleDeleteItem(request, env, corsHeaders, url);
+        return handleDeleteItem(request, env, corsHeaders, url, userId);
       }
 
       // POST /api/planner/items/reschedule - Change due date
       if (url.pathname === '/api/planner/items/reschedule' && request.method === 'POST') {
-        return handleRescheduleItem(request, env, corsHeaders, url);
+        return handleRescheduleItem(request, env, corsHeaders, url, userId);
       }
 
       return json({ ok: false, error: 'Not found' }, 404, corsHeaders);
@@ -91,12 +96,9 @@ async function hasCategoryColumns(env) {
   }
 }
 
-// GET /api/planner/items?userId=xxx&includeDone=1
-async function handleGetItems(request, env, corsHeaders, url) {
+// GET /api/planner/items?includeDone=1
+async function handleGetItems(request, env, corsHeaders, url, userId) {
   if (!env.DB) return json({ ok: false, error: 'DB not bound' }, 500, corsHeaders);
-
-  const userId = url.searchParams.get('userId');
-  if (!userId) return json({ ok: false, error: 'Missing userId' }, 400, corsHeaders);
 
   const includeDone = url.searchParams.get('includeDone') === '1';
   const statusClause = includeDone ? '' : " AND status = 'open'";
@@ -116,7 +118,7 @@ async function handleGetItems(request, env, corsHeaders, url) {
 }
 
 // POST /api/planner/items - Create or update
-async function handleSaveItem(request, env, corsHeaders, url) {
+async function handleSaveItem(request, env, corsHeaders, url, userId) {
   if (!env.DB) return json({ ok: false, error: 'DB not bound' }, 500, corsHeaders);
 
   let data;
@@ -126,7 +128,6 @@ async function handleSaveItem(request, env, corsHeaders, url) {
     return json({ ok: false, error: 'Invalid JSON' }, 400, corsHeaders);
   }
 
-  const userId = data.userId;
   const title = (data.title || '').trim();
   const kind = data.kind || 'task';
   const dueDate = data.dueDate || null;
@@ -140,8 +141,8 @@ async function handleSaveItem(request, env, corsHeaders, url) {
   const itemId = data.id;
   const isCategory = String(kind).toLowerCase() === 'category';
 
-  if (!userId || !title) {
-    return json({ ok: false, error: 'Missing userId or title' }, 400, corsHeaders);
+  if (!title) {
+    return json({ ok: false, error: 'Missing title' }, 400, corsHeaders);
   }
 
   const hasCategories = await hasCategoryColumns(env);
@@ -189,7 +190,7 @@ async function handleSaveItem(request, env, corsHeaders, url) {
 }
 
 // POST /api/planner/items/toggle
-async function handleToggleItem(request, env, corsHeaders, url) {
+async function handleToggleItem(request, env, corsHeaders, url, userId) {
   if (!env.DB) return json({ ok: false, error: 'DB not bound' }, 500, corsHeaders);
 
   let data;
@@ -202,18 +203,18 @@ async function handleToggleItem(request, env, corsHeaders, url) {
   const id = data.id;
   if (!id) return json({ ok: false, error: 'Missing id' }, 400, corsHeaders);
 
-  const existing = await env.DB.prepare('SELECT status FROM planner_items WHERE id = ?1 AND user_id = ?2').bind(id, data.userId).first();
+  const existing = await env.DB.prepare('SELECT status FROM planner_items WHERE id = ?1 AND user_id = ?2').bind(id, userId).first();
   if (!existing) return json({ ok: false, error: 'Not found' }, 404, corsHeaders);
 
   const newStatus = existing.status === 'done' ? 'open' : 'done';
-  const result = await env.DB.prepare("UPDATE planner_items SET status = ?1, updated_at = datetime('now') WHERE id = ?2 AND user_id = ?3").bind(newStatus, id, data.userId).run();
+  const result = await env.DB.prepare("UPDATE planner_items SET status = ?1, updated_at = datetime('now') WHERE id = ?2 AND user_id = ?3").bind(newStatus, id, userId).run();
   if (result.meta.changes !== 1) return json({ ok: false, error: 'Not found' }, 404, corsHeaders);
 
   return json({ ok: true, status: newStatus }, 200, corsHeaders);
 }
 
 // POST /api/planner/items/delete
-async function handleDeleteItem(request, env, corsHeaders, url) {
+async function handleDeleteItem(request, env, corsHeaders, url, userId) {
   if (!env.DB) return json({ ok: false, error: 'DB not bound' }, 500, corsHeaders);
 
   let data;
@@ -226,14 +227,14 @@ async function handleDeleteItem(request, env, corsHeaders, url) {
   const id = data.id;
   if (!id) return json({ ok: false, error: 'Missing id' }, 400, corsHeaders);
 
-  const result = await env.DB.prepare('DELETE FROM planner_items WHERE id = ?1 AND user_id = ?2').bind(id, data.userId).run();
+  const result = await env.DB.prepare('DELETE FROM planner_items WHERE id = ?1 AND user_id = ?2').bind(id, userId).run();
   if (result.meta.changes !== 1) return json({ ok: false, error: 'Not found' }, 404, corsHeaders);
 
   return json({ ok: true }, 200, corsHeaders);
 }
 
 // POST /api/planner/items/reschedule
-async function handleRescheduleItem(request, env, corsHeaders, url) {
+async function handleRescheduleItem(request, env, corsHeaders, url, userId) {
   if (!env.DB) return json({ ok: false, error: 'DB not bound' }, 500, corsHeaders);
 
   let data;
@@ -248,7 +249,7 @@ async function handleRescheduleItem(request, env, corsHeaders, url) {
 
   if (!id) return json({ ok: false, error: 'Missing id' }, 400, corsHeaders);
 
-  const result = await env.DB.prepare("UPDATE planner_items SET due_date = ?1, updated_at = datetime('now') WHERE id = ?2 AND user_id = ?3").bind(dueDate, id, data.userId).run();
+  const result = await env.DB.prepare("UPDATE planner_items SET due_date = ?1, updated_at = datetime('now') WHERE id = ?2 AND user_id = ?3").bind(dueDate, id, userId).run();
   if (result.meta.changes !== 1) return json({ ok: false, error: 'Not found' }, 404, corsHeaders);
 
   return json({ ok: true }, 200, corsHeaders);

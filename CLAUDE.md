@@ -24,13 +24,13 @@ A minimalist cyberpunk-themed calendar planner PWA. Tasks are displayed in a rol
 ## Stack
 - **Frontend**: Vanilla JS, HTML5, CSS3. No framework, no build step.
 - **Backend**: Cloudflare Worker (serverless) + Cloudflare D1 (SQLite)
-- **Auth**: Single shared password via `X-App-Password` header; stored in localStorage
+- **Auth**: Single shared password via `X-App-Password` header; server-side user from `APP_USER_ID`
 - **PWA**: Service worker with offline fallback; installable on mobile/desktop
 
 ## Task Data Model
 ```
 id          INTEGER PK AUTOINCREMENT
-user_id     TEXT    ('chris')
+user_id     TEXT    (from Worker `APP_USER_ID` secret)
 kind        TEXT    ('task')
 title       TEXT
 due_date    TEXT    (YYYY-MM-DD)
@@ -49,7 +49,7 @@ source      TEXT    ('lookahead-app' | 'lookahead-mobile')
 ## API Endpoints (Worker)
 | Method | Path | Description |
 |--------|------|-------------|
-| GET | `/api/planner/items?userId=&includeDone=1` | Fetch all tasks |
+| GET | `/api/planner/items?includeDone=1` | Fetch all tasks for the configured Worker user |
 | POST | `/api/planner/items` | Create or update (pass `id` to update) |
 | POST | `/api/planner/items/toggle` | Toggle done/open |
 | POST | `/api/planner/items/delete` | Delete by id |
@@ -80,7 +80,7 @@ No build step. Edit `app.js` / `styles.css` / `index.html` / `look-ahead-mobile.
 Service worker caching version is bumped in `sw.js` to force cache refresh after deploys.
 
 ## Key Patterns
-- `USER_ID` is hardcoded as `'chris'` in both frontend files.
+- The frontend never sends user identity; the Worker binds all DB queries to `APP_USER_ID`.
 - `API_BASES` array allows fallback worker URLs (currently one entry).
 - Desktop task notes are localStorage-only (`lookahead:task-notes:{id}`), not synced to DB.
 - All date math uses `localDayAnchor()` (noon local time) to avoid DST edge cases.

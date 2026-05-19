@@ -266,8 +266,6 @@
 
     // TODO: Update the worker URL below after deploying
     const API_BASES = ['https://look-ahead-planner.99redder.workers.dev'];
-    const USER_ID = 'chris';
-    
     let tasks = [];
     let currentDate = new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate(), 12, 0, 0, 0);
     let isEditing = false;
@@ -443,7 +441,7 @@
     async function loadTasks() {
       setSync('Syncing...');
       try {
-        const data = await api(`/api/planner/items?userId=${encodeURIComponent(USER_ID)}&includeDone=1`);
+        const data = await api('/api/planner/items?includeDone=1');
         tasks = Array.isArray(data.items) ? data.items : [];
         renderTasks();
         setSync('Synced');
@@ -530,7 +528,6 @@
         const result = await api('/api/planner/items', {
           method: 'POST',
           body: JSON.stringify({
-            userId: USER_ID,
             kind: 'task',
             title: title.trim(),
             dueDate: ymd(currentDate),
@@ -563,7 +560,6 @@
           method: 'POST',
           body: JSON.stringify({
             id: existing.id,
-            userId: USER_ID,
             kind: existing.kind || 'task',
             title: title.trim(),
             dueDate: existing.due_date || null,
@@ -595,7 +591,7 @@
         setSync('Saving...');
         await api('/api/planner/items/toggle', {
           method: 'POST',
-          body: JSON.stringify({ id, userId: USER_ID })
+          body: JSON.stringify({ id })
         });
         const scrollPos = window.scrollY;
         await loadTasks();
@@ -611,7 +607,7 @@
         setSync('Deleting...');
         await api('/api/planner/items/delete', {
           method: 'POST',
-          body: JSON.stringify({ id, userId: USER_ID })
+          body: JSON.stringify({ id })
         });
         const scrollPos = window.scrollY;
         await loadTasks();

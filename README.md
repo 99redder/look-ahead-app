@@ -8,13 +8,25 @@ Initial standalone web app scaffold matching the neon planner vibe.
 - Password verified server-side via Worker env secret (`APP_PASSWORD`)
 - Task add/toggle/delete against D1 API
 
-## Auth setup (replace Cloudflare Access)
-Set the Worker secret:
+## Worker setup
+
+Create a D1 database in Cloudflare, then copy its database ID into your local
+Worker config before deploying. Do not commit production database IDs.
 
 ```bash
 cd worker
-wrangler secret put APP_PASSWORD
+cp wrangler.toml.example wrangler.toml
+# Edit wrangler.toml and set database_id from the Cloudflare dashboard
 ```
+
+Set the Worker secrets:
+
+```bash
+wrangler secret put APP_PASSWORD
+wrangler secret put APP_USER_ID
+```
+
+Set `APP_USER_ID` to the canonical planner user for this deployment.
 
 Then deploy:
 

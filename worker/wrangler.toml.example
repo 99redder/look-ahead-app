@@ -8,7 +8,7 @@ ALLOWED_ORIGINS = "https://lookahead.easternshore.ai"
 [[d1_databases]]
 binding = "DB"
 database_name = "look-ahead-planner-db"
-database_id = "" # Fill in with your D1 database ID from Cloudflare
+database_id = "<your-d1-database-id>"
 
 [observability]
 enabled = false

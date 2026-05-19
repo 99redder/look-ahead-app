@@ -3,7 +3,6 @@ const API_BASES = [
   'https://look-ahead-planner.99redder.workers.dev',
 ];
 
-const USER_ID = 'chris';
 const CATEGORY_KIND = 'category';
 const DEFAULT_CATEGORY_ID = 'followup';
 const DEFAULT_CATEGORY_COLOR = '#ffffff';
@@ -241,7 +240,6 @@ function ensureDefaultCategory() {
       color: DEFAULT_CATEGORY_COLOR,
       title: 'FOLLOW UP',
       kind: CATEGORY_KIND,
-      user_id: USER_ID,
       status: 'open',
       source: 'lookahead-app'
     }, ...categories];
@@ -576,7 +574,6 @@ async function saveCategory(category) {
     method: 'POST',
     body: JSON.stringify({
       ...(id ? { id } : {}),
-      userId: USER_ID,
       kind: CATEGORY_KIND,
       title: name,
       notes: color,
@@ -601,7 +598,6 @@ async function deleteCategory(category) {
       method: 'POST',
       body: JSON.stringify({
         id: task.id,
-        userId: USER_ID,
         kind: task.kind || 'task',
         title: task.title,
         dueDate: task.due_date || null,
@@ -612,7 +608,7 @@ async function deleteCategory(category) {
       })
     });
   }
-  await api('/api/planner/items/delete', { method: 'POST', body: JSON.stringify({ id: category.id, userId: USER_ID }) });
+  await api('/api/planner/items/delete', { method: 'POST', body: JSON.stringify({ id: category.id }) });
 }
 
 async function manageCategories() {
@@ -624,7 +620,7 @@ async function manageCategories() {
 
 async function loadTasks() {
   setSync('Syncing...');
-  const data = await api(`/api/planner/items?userId=${encodeURIComponent(USER_ID)}&includeDone=1`);
+  const data = await api('/api/planner/items?includeDone=1');
   const items = Array.isArray(data.items) ? data.items : [];
   parseCategoryPayload(items);
   tasks = items
@@ -788,8 +784,8 @@ if (taskList) {
     const act = btn.dataset.act;
     try {
       setSync('Syncing...');
-      if (act === 'toggle') await api('/api/planner/items/toggle', { method: 'POST', body: JSON.stringify({ id, userId: USER_ID }) });
-      if (act === 'delete') await api('/api/planner/items/delete', { method: 'POST', body: JSON.stringify({ id, userId: USER_ID }) });
+      if (act === 'toggle') await api('/api/planner/items/toggle', { method: 'POST', body: JSON.stringify({ id }) });
+      if (act === 'delete') await api('/api/planner/items/delete', { method: 'POST', body: JSON.stringify({ id }) });
       await refreshAfterMutation();
     } catch (err) {
       setSync(err.message || 'Sync error', false);
@@ -804,7 +800,7 @@ if (taskList) {
     if (!id || !dueDate) return;
     try {
       setSync('Syncing...');
-      await api('/api/planner/items/reschedule', { method: 'POST', body: JSON.stringify({ id, userId: USER_ID, dueDate }) });
+      await api('/api/planner/items/reschedule', { method: 'POST', body: JSON.stringify({ id, dueDate }) });
       await refreshAfterMutation();
     } catch (err) {
       setSync(err.message || 'Sync error', false);
@@ -875,7 +871,7 @@ calendarGrid.addEventListener('click', async (e) => {
     if (!await confirmDelete()) return;
     try {
       setSync('Deleting...');
-      await api('/api/planner/items/delete', { method: 'POST', body: JSON.stringify({ id, userId: USER_ID }) });
+      await api('/api/planner/items/delete', { method: 'POST', body: JSON.stringify({ id }) });
       await refreshAfterMutation();
     } catch (err) {
       setSync(err.message || 'Delete error', false);
@@ -898,7 +894,7 @@ calendarGrid.addEventListener('click', async (e) => {
       if (!await confirmDelete()) return;
       try {
         setSync('Deleting...');
-        await api('/api/planner/items/delete', { method: 'POST', body: JSON.stringify({ id: existing.id, userId: USER_ID }) });
+        await api('/api/planner/items/delete', { method: 'POST', body: JSON.stringify({ id: existing.id }) });
         await refreshAfterMutation();
       } catch (err) {
         setSync(err.message || 'Delete error', false);
@@ -915,7 +911,6 @@ calendarGrid.addEventListener('click', async (e) => {
         method: 'POST',
         body: JSON.stringify({
           id: existing.id,
-          userId: USER_ID,
           kind: existing.kind || 'task',
           title,
           dueDate: existing.due_date || null,
@@ -974,7 +969,6 @@ async function openCreateTaskModalForDay(ymd) {
     await api('/api/planner/items', {
       method: 'POST',
       body: JSON.stringify({
-        userId: USER_ID,
         kind: 'task',
         title,
         dueDate: ymd,
@@ -1027,7 +1021,7 @@ calendarGrid.addEventListener('drop', async (e) => {
   if (!id || !ymd) return;
   try {
     setSync('Syncing...');
-    await api('/api/planner/items/reschedule', { method: 'POST', body: JSON.stringify({ id, userId: USER_ID, dueDate: ymd }) });
+    await api('/api/planner/items/reschedule', { method: 'POST', body: JSON.stringify({ id, dueDate: ymd }) });
     await refreshAfterMutation();
   } catch (err) {
     setSync(err.message || 'Sync error', false);
@@ -1192,7 +1186,7 @@ function wireWorkListEvents() {
         if (confirmed) {
           try {
             setSync('Syncing...');
-            await api('/api/planner/items/delete', { method: 'POST', body: JSON.stringify({ id: task.id, userId: USER_ID }) });
+            await api('/api/planner/items/delete', { method: 'POST', body: JSON.stringify({ id: task.id }) });
             await refreshAfterMutation();
             renderWorkList();
           } catch (err) {
@@ -1209,7 +1203,7 @@ function wireWorkListEvents() {
           setSync('Syncing...');
           await api('/api/planner/items/reschedule', {
             method: 'POST',
-            body: JSON.stringify({ id: task.id, userId: USER_ID, dueDate: ymdToday() })
+            body: JSON.stringify({ id: task.id, dueDate: ymdToday() })
           });
           await refreshAfterMutation();
           renderWorkList();
@@ -1274,7 +1268,6 @@ function wireWorkListEvents() {
         await api('/api/planner/items', {
           method: 'POST',
           body: JSON.stringify({
-            userId: USER_ID,
             kind: 'task',
             title: newTitle,
             dueDate: null,
@@ -1290,7 +1283,6 @@ function wireWorkListEvents() {
           method: 'POST',
           body: JSON.stringify({
             id: task.id,
-            userId: USER_ID,
             kind: task.kind || 'task',
             title: newTitle,
             dueDate: task.due_date || null,
