@@ -181,6 +181,8 @@
     .modal input,
     .modal select {
       width: 100%;
+      max-width: 100%;
+      min-width: 0;
       background: #0b120d;
       color: var(--text);
       border: 1px solid #24522b;
@@ -188,6 +190,11 @@
       border-radius: 8px;
       font-size: 16px;
       margin-bottom: 16px;
+    }
+    .modal input[type="date"] {
+      -webkit-appearance: none;
+      appearance: none;
+      display: block;
     }
     .modal label {
       display: block;
