@@ -95,7 +95,26 @@
     }
     .task-item.done { opacity: 0.5; }
     .task-item.done .task-title { text-decoration: line-through; }
-    .task-title { font-size: 16px; }
+    .task-body { min-width: 0; flex: 1; }
+    .task-title { font-size: 16px; overflow-wrap: anywhere; }
+    .task-meta {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .task-category-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+      box-shadow: 0 0 0 1px rgba(255,255,255,.18) inset;
+      flex: 0 0 auto;
+    }
     .task-item { cursor: pointer; }
     .task-actions { display: flex; gap: 16px; }
     .task-btn {
@@ -159,7 +178,8 @@
       max-width: 400px;
     }
     .modal h3 { margin: 0 0 12px; color: var(--line); }
-    .modal input {
+    .modal input,
+    .modal select {
       width: 100%;
       background: #0b120d;
       color: var(--text);
@@ -168,6 +188,15 @@
       border-radius: 8px;
       font-size: 16px;
       margin-bottom: 16px;
+    }
+    .modal label {
+      display: block;
+      margin: 0 0 6px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
     }
     .modal-notes {
       width: 100%;
@@ -241,8 +270,12 @@
     <div class="modal">
       <h3 id="modal-title">New Task</h3>
       <input type="text" id="modal-input" placeholder="Task title..." />
-      <input type="text" id="modal-time" placeholder="Time (HHMM, e.g. 0800)" maxlength="4" />
-      <textarea id="modal-notes" class="modal-notes" rows="4" placeholder="Notes (optional)"></textarea>
+      <input type="text" id="modal-time" class="modal-task-field" placeholder="Time (HHMM, e.g. 0800)" maxlength="4" />
+      <label for="modal-category" class="modal-task-field">Category</label>
+      <select id="modal-category" class="modal-task-field"></select>
+      <label for="modal-due-date" class="modal-task-field">Date</label>
+      <input type="date" id="modal-due-date" class="modal-task-field" />
+      <textarea id="modal-notes" class="modal-notes modal-task-field" rows="4" placeholder="Notes (optional)"></textarea>
       <div class="modal-actions">
         <button class="modal-btn cancel" id="modal-cancel">Cancel</button>
         <button class="modal-btn save" id="modal-save">Add</button>
@@ -266,7 +299,11 @@
 
     // TODO: Update the worker URL below after deploying
     const API_BASES = ['https://look-ahead-planner.99redder.workers.dev'];
+    const CATEGORY_KIND = 'category';
+    const DEFAULT_CATEGORY_ID = 'followup';
+    const DEFAULT_CATEGORY_COLOR = '#ffffff';
     let tasks = [];
+    let categories = [];
     let currentDate = new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate(), 12, 0, 0, 0);
     let isEditing = false;
     let editingTaskId = null;
@@ -285,6 +322,12 @@
       } catch {}
     }
 
+    function setTaskFieldsVisible(visible) {
+      document.querySelectorAll('.modal-task-field').forEach((el) => {
+        el.style.display = visible ? '' : 'none';
+      });
+    }
+
     function passwordModal() {
       return new Promise((resolve) => {
         const prevTitle = modalTitle.textContent;
@@ -298,7 +341,7 @@
         modalInput.type = 'password';
         modalInput.value = '';
         modalInput.placeholder = 'Password';
-        modalNotes.style.display = 'none';
+        setTaskFieldsVisible(false);
         modalSave.textContent = 'Unlock';
         modal.classList.add('active');
         isEditing = false;
@@ -311,6 +354,7 @@
           modalInput.type = prevType;
           modalInput.value = '';
           modalInput.placeholder = 'Task title...';
+          setTaskFieldsVisible(true);
           modalTitle.textContent = prevTitle;
           modalSave.textContent = prevSave;
           isEditing = prevEditing;
@@ -351,6 +395,8 @@
     const modalInput = document.getElementById('modal-input');
     const modalNotes = document.getElementById('modal-notes');
     const modalTime = document.getElementById('modal-time');
+    const modalCategory = document.getElementById('modal-category');
+    const modalDueDate = document.getElementById('modal-due-date');
     const modalTitle = document.getElementById('modal-title');
     const modalSave = document.getElementById('modal-save');
     const modalCancel = document.getElementById('modal-cancel');
@@ -442,7 +488,11 @@
       setSync('Syncing...');
       try {
         const data = await api('/api/planner/items?includeDone=1');
-        tasks = Array.isArray(data.items) ? data.items : [];
+        const items = Array.isArray(data.items) ? data.items : [];
+        parseCategoryPayload(items);
+        tasks = items
+          .filter(item => String(item.kind || 'task').toLowerCase() !== CATEGORY_KIND)
+          .map(normalizeTask);
         renderTasks();
         setSync('Synced');
       } catch (err) {
@@ -469,6 +519,91 @@
       return /^\d{4}$/.test(v) ? v : '';
     }
 
+    function normalizeHexColor(value, fallback = DEFAULT_CATEGORY_COLOR) {
+      const v = String(value || '').trim();
+      return /^#[0-9a-fA-F]{6}$/.test(v) ? v.toLowerCase() : fallback;
+    }
+
+    function slugifyCategoryName(value) {
+      return String(value || '')
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '') || DEFAULT_CATEGORY_ID;
+    }
+
+    function normalizeCategory(item = {}) {
+      const name = String(item.name || item.title || 'FOLLOW UP').trim() || 'FOLLOW UP';
+      const categoryId = String(item.categoryId || item.category_id || slugifyCategoryName(name));
+      return {
+        id: item.id || `category:${categoryId}`,
+        categoryId,
+        name,
+        color: normalizeHexColor(item.color || item.categoryColor || item.category_color || item.notes || DEFAULT_CATEGORY_COLOR)
+      };
+    }
+
+    function ensureDefaultCategory() {
+      if (!categories.some(category => category.categoryId === DEFAULT_CATEGORY_ID)) {
+        categories = [{
+          id: `category:${DEFAULT_CATEGORY_ID}`,
+          categoryId: DEFAULT_CATEGORY_ID,
+          name: 'FOLLOW UP',
+          color: DEFAULT_CATEGORY_COLOR
+        }, ...categories];
+      }
+    }
+
+    function parseCategoryPayload(items) {
+      categories = items
+        .filter(item => String(item.kind || '').toLowerCase() === CATEGORY_KIND)
+        .map(normalizeCategory)
+        .sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')));
+      ensureDefaultCategory();
+    }
+
+    function normalizeTask(item = {}) {
+      return {
+        ...item,
+        categoryId: String(item.categoryId || item.category_id || DEFAULT_CATEGORY_ID),
+        categoryName: String(item.categoryName || item.category_name || '').trim(),
+        categoryColor: normalizeHexColor(item.categoryColor || item.category_color || '', DEFAULT_CATEGORY_COLOR)
+      };
+    }
+
+    function getCategoryById(categoryId) {
+      ensureDefaultCategory();
+      return categories.find(category => String(category.categoryId) === String(categoryId))
+        || categories.find(category => category.categoryId === DEFAULT_CATEGORY_ID)
+        || { categoryId: DEFAULT_CATEGORY_ID, name: 'FOLLOW UP', color: DEFAULT_CATEGORY_COLOR };
+    }
+
+    function getTaskCategory(task) {
+      const category = getCategoryById(task?.categoryId || DEFAULT_CATEGORY_ID);
+      return {
+        ...category,
+        name: task?.categoryName || category.name,
+        color: normalizeHexColor(task?.categoryColor || category.color, DEFAULT_CATEGORY_COLOR)
+      };
+    }
+
+    function categoryMeta(categoryId) {
+      const category = getCategoryById(categoryId);
+      return {
+        categoryId: category.categoryId,
+        categoryName: category.name,
+        categoryColor: category.color
+      };
+    }
+
+    function fillCategoryOptions(selectedId = DEFAULT_CATEGORY_ID) {
+      ensureDefaultCategory();
+      modalCategory.innerHTML = categories.map(category => (
+        `<option value="${escapeHtml(category.categoryId)}">${escapeHtml(category.name)}</option>`
+      )).join('');
+      modalCategory.value = categories.some(category => category.categoryId === selectedId) ? selectedId : DEFAULT_CATEGORY_ID;
+    }
+
     function renderTasks() {
       const dateKey = ymd(currentDate);
       const dayTasks = sortTasksByTime(tasks.filter(t => (t.due_date || '') === dateKey));
@@ -480,9 +615,13 @@
       
       taskList.innerHTML = dayTasks.map(t => {
         const hasNotes = localStorage.getItem('lookahead:task-notes:' + t.id);
+        const category = getTaskCategory(t);
         return `
         <div class="task-item ${t.status === 'done' ? 'done' : ''}" data-id="${t.id}" data-action="edit">
-          <div class="task-title" data-action="edit">${formatMilitaryTime(t.due_time) ? `<span style=\"color:var(--line);font-weight:700;\">${escapeHtml(formatMilitaryTime(t.due_time))}</span> · ` : ''}${escapeHtml(t.title)}${hasNotes ? ' <span style=\"opacity:0.5;\">📝</span>' : ''}</div>
+          <div class="task-body" data-action="edit">
+            <div class="task-title">${formatMilitaryTime(t.due_time) ? `<span style=\"color:var(--line);font-weight:700;\">${escapeHtml(formatMilitaryTime(t.due_time))}</span> · ` : ''}${escapeHtml(t.title)}${hasNotes ? ' <span style=\"opacity:0.5;\">📝</span>' : ''}</div>
+            <div class="task-meta"><span class="task-category-dot" style="background:${escapeHtml(category.color)};"></span>${escapeHtml(category.name)}</div>
+          </div>
           <div class="task-actions">
             <button class="task-btn done-btn" data-action="toggle">${t.status === 'done' ? '↩' : '✓'}</button>
             
@@ -501,10 +640,14 @@
       modalInput.value = initialValue;
       modalNotes.value = '';
       modalTime.value = '';
+      modalDueDate.value = ymd(currentDate);
+      fillCategoryOptions(DEFAULT_CATEGORY_ID);
       if (isEdit && taskId) {
         modalNotes.value = localStorage.getItem('lookahead:task-notes:' + taskId) || '';
         const task = tasks.find(t => String(t.id) === String(taskId));
         modalTime.value = formatMilitaryTime(task?.due_time);
+        modalDueDate.value = task?.due_date || ymd(currentDate);
+        fillCategoryOptions(task?.categoryId || DEFAULT_CATEGORY_ID);
       }
       modalSave.textContent = saveLabel;
       modal.classList.add('active');
@@ -518,11 +661,14 @@
       modalInput.value = '';
       modalNotes.value = '';
       modalTime.value = '';
+      modalDueDate.value = '';
+      modalCategory.value = DEFAULT_CATEGORY_ID;
     }
     
-    async function addTask(title, notes, dueTime) {
+    async function addTask(title, notes, dueTime, dueDate, categoryId) {
       if (!title.trim()) return;
       const cleanTime = formatMilitaryTime(dueTime);
+      const category = categoryMeta(categoryId || DEFAULT_CATEGORY_ID);
       try {
         setSync('Saving...');
         const result = await api('/api/planner/items', {
@@ -530,9 +676,10 @@
           body: JSON.stringify({
             kind: 'task',
             title: title.trim(),
-            dueDate: ymd(currentDate),
+            dueDate: dueDate || ymd(currentDate),
             dueTime: cleanTime || null,
-            source: 'lookahead-mobile'
+            source: 'lookahead-mobile',
+            ...category
           })
         });
         // Save notes to localStorage
@@ -549,11 +696,12 @@
       }
     }
     
-    async function updateTask(id, title, notes, dueTime) {
+    async function updateTask(id, title, notes, dueTime, dueDate, categoryId) {
       if (!title.trim()) return;
       const cleanTime = formatMilitaryTime(dueTime);
       const existing = tasks.find(t => String(t.id) === String(id));
       if (!existing) return;
+      const category = categoryMeta(categoryId || existing.categoryId || DEFAULT_CATEGORY_ID);
       try {
         setSync('Saving...');
         await api('/api/planner/items', {
@@ -562,10 +710,11 @@
             id: existing.id,
             kind: existing.kind || 'task',
             title: title.trim(),
-            dueDate: existing.due_date || null,
+            dueDate: dueDate || existing.due_date || null,
             dueTime: cleanTime || null,
             status: existing.status || 'open',
-            source: existing.source || 'lookahead-mobile'
+            source: existing.source || 'lookahead-mobile',
+            ...category
           })
         });
         // Save notes to localStorage
@@ -658,9 +807,9 @@
     modalSave.addEventListener('click', () => {
       if (authPromptActive) return;
       if (isEditing && editingTaskId) {
-        updateTask(editingTaskId, modalInput.value, modalNotes.value, modalTime.value);
+        updateTask(editingTaskId, modalInput.value, modalNotes.value, modalTime.value, modalDueDate.value, modalCategory.value);
       } else {
-        addTask(modalInput.value, modalNotes.value, modalTime.value);
+        addTask(modalInput.value, modalNotes.value, modalTime.value, modalDueDate.value, modalCategory.value);
       }
     });
     
