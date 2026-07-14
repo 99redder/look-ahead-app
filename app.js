@@ -644,7 +644,7 @@ function renderCategories() {
 function renderTaskItem(task, compact = false) {
   const title = `${formatMilitaryTime(task.due_time) ? `${formatMilitaryTime(task.due_time)} ` : ''}${task.title}`;
   return `<div class="cal-item${task.status === 'done' ? ' done' : ''}" draggable="true" data-drag-task-id="${task.id}" style="${getTaskChipStyle(task)}">
-    <span class="cal-item-title">${escapeHtml(title)}</span>
+    <span class="cal-item-title"><span class="cal-item-title-inner">${escapeHtml(title)}</span></span>
     <span class="cal-item-delete" data-delete-id="${task.id}">×</span>
   </div>`;
 }
@@ -946,6 +946,28 @@ calendarGrid.addEventListener('dragend', (e) => {
   if (item) item.classList.remove('dragging');
   dragTaskId = null;
   document.querySelectorAll('.cal-day.drop-target').forEach((el) => el.classList.remove('drop-target'));
+});
+
+// On hover, scroll a task title horizontally if it's clipped so the full text is readable.
+calendarGrid.addEventListener('mouseover', (e) => {
+  const item = e.target.closest('.cal-item[data-drag-task-id]');
+  if (!item) return;
+  const title = item.querySelector('.cal-item-title');
+  const inner = item.querySelector('.cal-item-title-inner');
+  if (!title || !inner) return;
+  const overflow = inner.scrollWidth - title.clientWidth;
+  if (overflow <= 1) return;
+  // Speed: ~40px/sec, min 1s.
+  const duration = Math.max(1, overflow / 40);
+  title.style.setProperty('--cal-scroll-x', `-${overflow}px`);
+  title.style.setProperty('--cal-scroll-duration', `${duration}s`);
+  item.classList.add('scrolling');
+});
+
+calendarGrid.addEventListener('mouseout', (e) => {
+  const item = e.target.closest('.cal-item[data-drag-task-id]');
+  if (!item || item.contains(e.relatedTarget)) return;
+  item.classList.remove('scrolling');
 });
 
 async function openCreateTaskModalForDay(ymd) {

@@ -80,7 +80,10 @@ button:hover { border-color: var(--pink); color: var(--pink); }
 .actions { display: flex; gap: 6px; }
 
 .cal-item { display: flex; justify-content: space-between; align-items: center; gap: 6px; }
-.cal-item-title { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cal-item-title { flex: 1; overflow: hidden; white-space: nowrap; min-width: 0; }
+.cal-item-title-inner { display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: top; }
+.cal-item.scrolling .cal-item-title-inner { max-width: none; text-overflow: clip; animation: cal-title-scroll var(--cal-scroll-duration, 2s) linear infinite alternate; }
+@keyframes cal-title-scroll { from { transform: translateX(0); } to { transform: translateX(var(--cal-scroll-x, 0)); } }
 .cal-item-delete { opacity: 0; font-size: 14px; font-weight: 700; cursor: pointer; color: inherit; padding: 0 2px; }
 .cal-item:hover .cal-item-delete { opacity: 1; }
 
