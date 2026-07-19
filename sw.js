@@ -1,7 +1,7 @@
 // Service Worker for Look Ahead Mobile
 // Auto-updates when page is opened
 
-const CACHE_NAME = 'look-ahead-mobile-v9';
+const CACHE_NAME = 'look-ahead-mobile-v10';
 const urlsToCache = [
   '/look-ahead-mobile.html',
   '/manifest.json',
