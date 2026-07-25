@@ -89,11 +89,11 @@ export default {
 
 async function verifyStockStickiesUser(token, env) {
   const projectId = (env.FIREBASE_PROJECT_ID || '').trim();
-  const allowedEmails = (env.STOCK_STICKIES_AUTH_EMAILS || '')
+  const allowedUserIds = (env.STOCK_STICKIES_AUTH_UIDS || '')
     .split(',')
-    .map(value => value.trim().toLowerCase())
+    .map(value => value.trim())
     .filter(Boolean);
-  if (!projectId || allowedEmails.length === 0 || !token) {
+  if (!projectId || allowedUserIds.length === 0 || !token) {
     throw new Error('Firebase auth is not configured');
   }
 
@@ -132,7 +132,6 @@ async function verifyStockStickiesUser(token, env) {
 
   const now = Math.floor(Date.now() / 1000);
   const expectedIssuer = `https://securetoken.google.com/${projectId}`;
-  const email = String(claims.email || '').trim().toLowerCase();
   if (
     claims.aud !== projectId ||
     claims.iss !== expectedIssuer ||
@@ -143,8 +142,7 @@ async function verifyStockStickiesUser(token, env) {
     claims.exp <= now ||
     typeof claims.iat !== 'number' ||
     claims.iat > now + 300 ||
-    claims.email_verified !== true ||
-    !allowedEmails.includes(email)
+    !allowedUserIds.includes(claims.sub)
   ) {
     throw new Error('Token claims are not authorized');
   }
