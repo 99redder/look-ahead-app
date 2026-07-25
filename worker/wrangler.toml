@@ -1,9 +1,10 @@
 name = "look-ahead-planner"
 main = "src/index.js"
-compatibility_date = "2026-03-03"
+compatibility_date = "2026-07-25"
 
 [vars]
-ALLOWED_ORIGINS = "https://lookahead.easternshore.ai"
+ALLOWED_ORIGINS = "https://lookahead.easternshore.ai,https://stockstickies.com,https://www.stockstickies.com,http://localhost:5173,http://127.0.0.1:5173"
+FIREBASE_PROJECT_ID = "red-s-stickies"
 
 [[d1_databases]]
 binding = "DB"

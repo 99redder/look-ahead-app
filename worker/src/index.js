@@ -14,7 +14,7 @@ export default {
       const corsHeaders = {
         'Access-Control-Allow-Origin': allowAll ? '*' : (originAllowed ? origin : allowedOrigins[0] || ''),
         'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, X-App-Password',
+        'Access-Control-Allow-Headers': 'Authorization, Content-Type, X-App-Password',
         'Vary': 'Origin'
       };
 
@@ -33,9 +33,18 @@ export default {
         return json({ ok: false, error: 'Server auth misconfigured' }, 503, corsHeaders);
       }
 
-      const supplied = (request.headers.get('X-App-Password') || '').trim();
-      if (supplied !== appPassword) {
-        return json({ ok: false, error: 'Unauthorized' }, 401, corsHeaders);
+      const authorization = (request.headers.get('Authorization') || '').trim();
+      if (authorization.startsWith('Bearer ')) {
+        try {
+          await verifyStockStickiesUser(authorization.slice(7).trim(), env);
+        } catch {
+          return json({ ok: false, error: 'Unauthorized' }, 401, corsHeaders);
+        }
+      } else {
+        const supplied = (request.headers.get('X-App-Password') || '').trim();
+        if (supplied !== appPassword) {
+          return json({ ok: false, error: 'Unauthorized' }, 401, corsHeaders);
+        }
       }
 
       const userId = (env.APP_USER_ID || '').trim();
@@ -78,6 +87,82 @@ export default {
   }
 };
 
+async function verifyStockStickiesUser(token, env) {
+  const projectId = (env.FIREBASE_PROJECT_ID || '').trim();
+  const allowedEmails = (env.STOCK_STICKIES_AUTH_EMAILS || '')
+    .split(',')
+    .map(value => value.trim().toLowerCase())
+    .filter(Boolean);
+  if (!projectId || allowedEmails.length === 0 || !token) {
+    throw new Error('Firebase auth is not configured');
+  }
+
+  const segments = token.split('.');
+  if (segments.length !== 3) throw new Error('Invalid token');
+
+  const header = JSON.parse(decodeBase64UrlText(segments[0]));
+  const claims = JSON.parse(decodeBase64UrlText(segments[1]));
+  if (header.alg !== 'RS256' || !header.kid) throw new Error('Invalid token header');
+
+  const keysResponse = await fetch(
+    'https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com',
+    { cf: { cacheEverything: true, cacheTtl: 3600 } }
+  );
+  if (!keysResponse.ok) throw new Error('Unable to load signing keys');
+  const keySet = await keysResponse.json();
+  const signingKey = Array.isArray(keySet.keys)
+    ? keySet.keys.find(candidate => candidate.kid === header.kid)
+    : null;
+  if (!signingKey) throw new Error('Unknown signing key');
+
+  const key = await crypto.subtle.importKey(
+    'jwk',
+    signingKey,
+    { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
+    false,
+    ['verify']
+  );
+  const validSignature = await crypto.subtle.verify(
+    { name: 'RSASSA-PKCS1-v1_5' },
+    key,
+    decodeBase64UrlBytes(segments[2]),
+    new TextEncoder().encode(`${segments[0]}.${segments[1]}`)
+  );
+  if (!validSignature) throw new Error('Invalid signature');
+
+  const now = Math.floor(Date.now() / 1000);
+  const expectedIssuer = `https://securetoken.google.com/${projectId}`;
+  const email = String(claims.email || '').trim().toLowerCase();
+  if (
+    claims.aud !== projectId ||
+    claims.iss !== expectedIssuer ||
+    typeof claims.sub !== 'string' ||
+    !claims.sub ||
+    claims.sub.length > 128 ||
+    typeof claims.exp !== 'number' ||
+    claims.exp <= now ||
+    typeof claims.iat !== 'number' ||
+    claims.iat > now + 300 ||
+    claims.email_verified !== true ||
+    !allowedEmails.includes(email)
+  ) {
+    throw new Error('Token claims are not authorized');
+  }
+
+  return claims;
+}
+
+function decodeBase64UrlText(value) {
+  return new TextDecoder().decode(decodeBase64UrlBytes(value));
+}
+
+function decodeBase64UrlBytes(value) {
+  const base64 = String(value).replace(/-/g, '+').replace(/_/g, '/');
+  const padded = base64.padEnd(Math.ceil(base64.length / 4) * 4, '=');
+  const decoded = atob(padded);
+  return Uint8Array.from(decoded, char => char.charCodeAt(0));
+}
+
 function json(payload, status = 200, headers = {}) {
   return new Response(JSON.stringify(payload), {
     status,
@@ -102,6 +187,11 @@ async function handleGetItems(request, env, corsHeaders, url, userId) {
 
   const includeDone = url.searchParams.get('includeDone') === '1';
   const statusClause = includeDone ? '' : " AND status = 'open'";
+  const dueDate = (url.searchParams.get('dueDate') || '').trim();
+  if (dueDate && !/^\d{4}-\d{2}-\d{2}$/.test(dueDate)) {
+    return json({ ok: false, error: 'Invalid dueDate' }, 400, corsHeaders);
+  }
+  const dateClause = dueDate ? ' AND due_date = ?2' : '';
   const orderClause = " ORDER BY due_date ASC, COALESCE(due_time, '9999') ASC, id DESC";
 
   const hasCategories = await hasCategoryColumns(env);
@@ -111,10 +201,12 @@ async function handleGetItems(request, env, corsHeaders, url, userId) {
     : "id, user_id, kind, title, due_date, due_time, status, notes, source, NULL as category_id, NULL as category_name, NULL as category_color, created_at";
 
   const result = await env.DB.prepare(
-    `SELECT ${cols} FROM planner_items WHERE user_id = ?1${statusClause}${orderClause}`
-  ).bind(userId).all();
+    `SELECT ${cols} FROM planner_items WHERE user_id = ?1${statusClause}${dateClause}${orderClause}`
+  );
+  const boundQuery = dueDate ? result.bind(userId, dueDate) : result.bind(userId);
+  const rows = await boundQuery.all();
 
-  return json({ ok: true, items: result.results || [] }, 200, corsHeaders);
+  return json({ ok: true, items: rows.results || [] }, 200, corsHeaders);
 }
 
 // POST /api/planner/items - Create or update
