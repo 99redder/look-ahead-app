@@ -499,6 +499,7 @@
         tasks = items
           .filter(item => String(item.kind || 'task').toLowerCase() !== CATEGORY_KIND)
           .map(normalizeTask);
+        await migrateLegacyTaskNotes();
         renderTasks();
         setSync('Synced');
       } catch (err) {
@@ -507,6 +508,41 @@
       }
     }
     
+    // Notes used to live only in localStorage on the device that wrote them.
+    // Push any device-only notes up to the server (server copy wins if it has one).
+    async function migrateLegacyTaskNotes() {
+      for (const task of tasks) {
+        const key = 'lookahead:task-notes:' + task.id;
+        let legacy = '';
+        try { legacy = (localStorage.getItem(key) || '').trim(); } catch {}
+        if (!legacy) continue;
+        if (task.notes) {
+          try { localStorage.removeItem(key); } catch {}
+          continue;
+        }
+        task.notes = legacy;
+        try {
+          await api('/api/planner/items', {
+            method: 'POST',
+            body: JSON.stringify({
+              id: task.id,
+              kind: task.kind || 'task',
+              title: task.title,
+              dueDate: task.due_date || null,
+              dueTime: task.due_time || null,
+              notes: legacy,
+              status: task.status || 'open',
+              source: task.source || 'lookahead-mobile',
+              categoryId: task.category_id || null,
+              categoryName: task.category_name || null,
+              categoryColor: task.category_color || null
+            })
+          });
+          localStorage.removeItem(key);
+        } catch {}
+      }
+    }
+
     function timeSortValue(task) {
       const raw = String(task?.due_time || '').trim();
       return /^\d{4}$/.test(raw) ? raw : '9999';
@@ -620,7 +656,7 @@
       }
       
       taskList.innerHTML = dayTasks.map(t => {
-        const hasNotes = localStorage.getItem('lookahead:task-notes:' + t.id);
+        const hasNotes = !!t.notes;
         const category = getTaskCategory(t);
         return `
         <div class="task-item ${t.status === 'done' ? 'done' : ''}" data-id="${t.id}" data-action="edit">
@@ -649,8 +685,8 @@
       modalDueDate.value = ymd(currentDate);
       fillCategoryOptions(DEFAULT_CATEGORY_ID);
       if (isEdit && taskId) {
-        modalNotes.value = localStorage.getItem('lookahead:task-notes:' + taskId) || '';
         const task = tasks.find(t => String(t.id) === String(taskId));
+        modalNotes.value = task?.notes || '';
         modalTime.value = formatMilitaryTime(task?.due_time);
         modalDueDate.value = task?.due_date || ymd(currentDate);
         fillCategoryOptions(task?.categoryId || DEFAULT_CATEGORY_ID);
@@ -677,21 +713,18 @@
       const category = categoryMeta(categoryId || DEFAULT_CATEGORY_ID);
       try {
         setSync('Saving...');
-        const result = await api('/api/planner/items', {
+        await api('/api/planner/items', {
           method: 'POST',
           body: JSON.stringify({
             kind: 'task',
             title: title.trim(),
             dueDate: dueDate || ymd(currentDate),
             dueTime: cleanTime || null,
+            notes: (notes || '').trim() || null,
             source: 'lookahead-mobile',
             ...category
           })
         });
-        // Save notes to localStorage
-        if (notes && notes.trim()) {
-          localStorage.setItem('lookahead:task-notes:' + result.id, notes.trim());
-        }
         closeModal();
         const scrollPos = window.scrollY;
         await loadTasks();
@@ -718,17 +751,13 @@
             title: title.trim(),
             dueDate: dueDate || existing.due_date || null,
             dueTime: cleanTime || null,
+            notes: (notes || '').trim() || null,
             status: existing.status || 'open',
             source: existing.source || 'lookahead-mobile',
             ...category
           })
         });
-        // Save notes to localStorage
-        if (notes && notes.trim()) {
-          localStorage.setItem('lookahead:task-notes:' + id, notes.trim());
-        } else {
-          localStorage.removeItem('lookahead:task-notes:' + id);
-        }
+        try { localStorage.removeItem('lookahead:task-notes:' + id); } catch {}
         closeModal();
         editingTaskId = null;
         const scrollPos = window.scrollY;

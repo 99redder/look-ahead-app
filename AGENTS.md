@@ -36,7 +36,7 @@ title       TEXT
 due_date    TEXT    (YYYY-MM-DD)
 due_time    TEXT    (HHMM, e.g. '0800' — nullable)
 status      TEXT    ('open' | 'done')
-notes       TEXT    (not synced from desktop — stored in localStorage)
+notes       TEXT    (synced via the API on every task save)
 source      TEXT    ('lookahead-app' | 'lookahead-mobile')
 ```
 
@@ -82,6 +82,6 @@ Service worker caching version is bumped in `sw.js` to force cache refresh after
 ## Key Patterns
 - The frontend never sends user identity; the Worker binds all DB queries to `APP_USER_ID`.
 - `API_BASES` array allows fallback worker URLs (currently one entry).
-- Desktop task notes are localStorage-only (`lookahead:task-notes:{id}`), not synced to DB.
+- Task notes are stored in D1 and every task save must send `notes` (the Worker nulls it if omitted). Legacy device-only notes in localStorage (`lookahead:task-notes:{id}`) are uploaded once on load by `migrateLegacyTaskNotes()` and then removed.
 - All date math uses `localDayAnchor()` (noon local time) to avoid DST edge cases.
 - Drag-and-drop reschedules via `/reschedule` endpoint (does not touch `due_time`).

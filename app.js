@@ -317,7 +317,9 @@ function getContrastColor(hex) {
   return luminance > 0.62 ? '#081009' : '#f4fff1';
 }
 
-function getTaskNotes(taskId) {
+// Notes used to live only in localStorage on the device that wrote them.
+// They are now stored on the server; these helpers read/clear the old copies.
+function getLegacyTaskNotes(taskId) {
   try {
     return localStorage.getItem(`lookahead:task-notes:${taskId}`) || '';
   } catch {
@@ -325,12 +327,42 @@ function getTaskNotes(taskId) {
   }
 }
 
-function setTaskNotes(taskId, notes) {
+function clearLegacyTaskNotes(taskId) {
   try {
-    const key = `lookahead:task-notes:${taskId}`;
-    if ((notes || '').trim()) localStorage.setItem(key, notes);
-    else localStorage.removeItem(key);
+    localStorage.removeItem(`lookahead:task-notes:${taskId}`);
   } catch {}
+}
+
+// Push any device-only notes up to the server (server copy wins if it has one).
+async function migrateLegacyTaskNotes() {
+  for (const task of tasks) {
+    const legacy = getLegacyTaskNotes(task.id).trim();
+    if (!legacy) continue;
+    if (task.notes) {
+      clearLegacyTaskNotes(task.id);
+      continue;
+    }
+    task.notes = legacy;
+    try {
+      await api('/api/planner/items', {
+        method: 'POST',
+        body: JSON.stringify({
+          id: task.id,
+          kind: task.kind || 'task',
+          title: task.title,
+          dueDate: task.due_date || null,
+          dueTime: task.due_time || null,
+          notes: legacy,
+          status: task.status || 'open',
+          source: task.source || 'lookahead-app',
+          categoryId: task.category_id || null,
+          categoryName: task.category_name || null,
+          categoryColor: task.category_color || null
+        })
+      });
+      clearLegacyTaskNotes(task.id);
+    } catch {}
+  }
 }
 
 function fillCategoryOptions(selectedId = DEFAULT_CATEGORY_ID) {
@@ -402,12 +434,12 @@ function promptModal({ title = 'Edit', message = '', initialValue = '', saveLabe
 function taskEditorModal(task) {
   return new Promise((resolve) => {
     modalTitle.textContent = 'Edit Task';
-    modalMessage.textContent = 'Update title, time, category, and private notes.';
+    modalMessage.textContent = 'Update title, time, category, and notes.';
     modalInput.value = task?.title || '';
     modalNotes.style.display = 'block';
     modalTime.style.display = 'block';
     modalTime.value = formatMilitaryTime(task?.due_time);
-    modalNotes.value = getTaskNotes(task.id);
+    modalNotes.value = task?.notes || '';
     if (modalCategory) {
       modalCategory.style.display = 'block';
       fillCategoryOptions(task?.categoryId || DEFAULT_CATEGORY_ID);
@@ -602,6 +634,7 @@ async function deleteCategory(category) {
         title: task.title,
         dueDate: task.due_date || null,
         dueTime: task.due_time || null,
+        notes: task.notes || null,
         status: task.status || 'open',
         source: task.source || 'lookahead-app',
         ...fallback
@@ -626,6 +659,7 @@ async function loadTasks() {
   tasks = items
     .filter((item) => String(item.kind || 'task').toLowerCase() !== CATEGORY_KIND)
     .map(normalizeTask);
+  await migrateLegacyTaskNotes();
   if (!calAutoFocused) autoFocusCalendarMonthFromTasks();
   setSync('Synced');
   render();
@@ -915,13 +949,13 @@ calendarGrid.addEventListener('click', async (e) => {
           title,
           dueDate: existing.due_date || null,
           dueTime: next.dueTime ?? existing.due_time ?? null,
-          notes: existing.notes ?? null,
+          notes: (next.notes || '').trim() || null,
           status: existing.status || 'open',
           source: existing.source || 'lookahead-app',
           ...categoryMeta(next.categoryId || existing.categoryId || DEFAULT_CATEGORY_ID)
         })
       });
-      setTaskNotes(existing.id, next.notes || '');
+      clearLegacyTaskNotes(existing.id);
       await refreshAfterMutation();
     } catch (err) {
       setSync(err.message || 'Sync error', false);
