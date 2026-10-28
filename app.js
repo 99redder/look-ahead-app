@@ -24,6 +24,7 @@ const modalSave = document.getElementById('modal-save');
 const modalDelete = document.getElementById('modal-delete');
 const modalNotes = document.getElementById('modal-notes');
 const modalTime = document.getElementById('modal-time');
+const modalDate = document.getElementById('modal-date');
 const modalCategory = document.getElementById('modal-category');
 const modalColorWrap = document.getElementById('modal-color-wrap');
 const modalColorPalette = document.getElementById('modal-color-palette');
@@ -434,8 +435,10 @@ function promptModal({ title = 'Edit', message = '', initialValue = '', saveLabe
 function taskEditorModal(task) {
   return new Promise((resolve) => {
     modalTitle.textContent = 'Edit Task';
-    modalMessage.textContent = 'Update title, time, category, and notes.';
+    modalMessage.textContent = 'Update title, date, time, category, and notes.';
     modalInput.value = task?.title || '';
+    modalDate.style.display = 'block';
+    modalDate.value = task?.due_date || '';
     modalNotes.style.display = 'block';
     modalTime.style.display = 'block';
     modalTime.value = formatMilitaryTime(task?.due_time);
@@ -454,6 +457,8 @@ function taskEditorModal(task) {
       modalBackdrop.style.display = 'none';
       modalBackdrop.setAttribute('aria-hidden', 'true');
       modalNotes.style.display = 'none';
+      modalDate.style.display = 'none';
+      modalDate.value = '';
       modalTime.value = '';
       if (modalCategory) modalCategory.style.display = 'none';
       modalDelete.style.display = 'none';
@@ -462,6 +467,7 @@ function taskEditorModal(task) {
       modalDelete.removeEventListener('click', onDelete);
       modalBackdrop.removeEventListener('click', onBackdrop);
       modalInput.removeEventListener('keydown', onKey);
+      modalDate.removeEventListener('keydown', onKey);
       modalNotes.removeEventListener('keydown', onNotesKey);
       resolve(val);
     };
@@ -471,6 +477,7 @@ function taskEditorModal(task) {
       close({
         title,
         notes: modalNotes.value,
+        dueDate: /^\d{4}-\d{2}-\d{2}$/.test(modalDate.value) ? modalDate.value : null,
         dueTime: formatMilitaryTime(modalTime.value) || null,
         categoryId: modalCategory?.value || DEFAULT_CATEGORY_ID
       });
@@ -490,6 +497,7 @@ function taskEditorModal(task) {
     modalDelete.addEventListener('click', onDelete);
     modalBackdrop.addEventListener('click', onBackdrop);
     modalInput.addEventListener('keydown', onKey);
+    modalDate.addEventListener('keydown', onKey);
     modalNotes.addEventListener('keydown', onNotesKey);
   });
 }
@@ -947,7 +955,7 @@ calendarGrid.addEventListener('click', async (e) => {
           id: existing.id,
           kind: existing.kind || 'task',
           title,
-          dueDate: existing.due_date || null,
+          dueDate: next.dueDate || existing.due_date || null,
           dueTime: next.dueTime ?? existing.due_time ?? null,
           notes: (next.notes || '').trim() || null,
           status: existing.status || 'open',
